@@ -27,7 +27,7 @@ class Board:
         self.king_castle = [False, False]
         self.queen_castle = [False, False]
 
-        self.en_passant_square = 0
+        self.en_passant_square = None
         
         # fen
         self.load_fen(fen)
@@ -39,6 +39,7 @@ class Board:
     def load_fen(self, fen):
         """Load the FEN (Forsyth-Edwards Notation)"""
         parts = fen.split()
+        parts += ['-'] * (6 - len(parts)) # if all parts not there
         placement, turn, castling, en_passant, halfmove, fullmove = parts
 
         print("placement", placement)
@@ -73,6 +74,8 @@ class Board:
             ep_rank = int(en_passant[1]) - 1
             self.en_passant_square = ep_rank * 8 + ep_file
 
+        if en_passant == '-':
+            self.en_passant_square = None
 
     def __repr__(self):
         board = ''
@@ -100,6 +103,84 @@ class Board:
 
     def get_empty_squares(self):
         return FULL_BOARD & ~(self.get_occupied_squares(WHITE) | self.get_occupied_squares(BLACK))
+    
+    def is_square_attacked(self, square, by_color):
+        # pawns
+        sq_bb = 1 << square
+        if by_color == WHITE:
+            attackers = ((sq_bb & NOT_FILE1) >> 9 | (sq_bb & NOT_FILE8) >> 7) & self.bitboards[PAWN][WHITE]
+        else:
+            attackers = ((sq_bb & NOT_FILE1) << 7 | (sq_bb & NOT_FILE8) << 9) & self.bitboards[PAWN][BLACK]
+        if attackers:
+            return True
+
+        # knights
+        knight_attacks  = 0
+        knight_attacks |= (sq_bb & NOT_FILE8)             << 17
+        knight_attacks |= (sq_bb & NOT_FILE8 & NOT_FILE7) << 10
+        knight_attacks |= (sq_bb & NOT_FILE8 & NOT_FILE7) >> 6
+        knight_attacks |= (sq_bb & NOT_FILE8)             >> 15
+        knight_attacks |= (sq_bb & NOT_FILE1)             << 15
+        knight_attacks |= (sq_bb & NOT_FILE1 & NOT_FILE2) << 6
+        knight_attacks |= (sq_bb & NOT_FILE1 & NOT_FILE2) >> 10
+        knight_attacks |= (sq_bb & NOT_FILE1)             >> 17
+        if knight_attacks & self.bitboards[KNIGHT][by_color]:
+            return True
+
+        # bishops / queen (diagonals)
+        for direction in [9, 7, -7, -9]:
+            sq = square
+            while True:
+                prev_sq = sq
+                sq += direction
+                if sq < 0 or sq > 63:
+                    break
+                if abs(sq % 8 - prev_sq % 8) != 1:
+                    break
+                target = 1 << sq
+                if target & (self.bitboards[BISHOP][by_color] | self.bitboards[QUEEN][by_color]):
+                    return True
+                if target & (self.get_occupied_squares(WHITE) | self.get_occupied_squares(BLACK)):
+                    break  # blocked
+
+        # rooks / queen (straight lines)
+        for direction in [8, -8, 1, -1]:
+            sq = square
+            while True:
+                prev_sq = sq
+                sq += direction
+                if sq < 0 or sq > 63:
+                    break
+                if abs(direction) == 1 and sq // 8 != prev_sq // 8:
+                    break
+                target = 1 << sq
+                if target & (self.bitboards[ROOK][by_color] | self.bitboards[QUEEN][by_color]):
+                    return True
+                if target & (self.get_occupied_squares(WHITE) | self.get_occupied_squares(BLACK)):
+                    break  # blocked
+
+        # king
+        king_attacks  = 0
+        king_attacks |= (sq_bb & NOT_FILE8) << 9
+        king_attacks |= sq_bb << 8
+        king_attacks |= (sq_bb & NOT_FILE1) << 7
+        king_attacks |= (sq_bb & NOT_FILE8) << 1
+        king_attacks |= (sq_bb & NOT_FILE1) >> 1
+        king_attacks |= (sq_bb & NOT_FILE8) >> 7
+        king_attacks |= sq_bb >> 8
+        king_attacks |= (sq_bb & NOT_FILE1) >> 9
+        if king_attacks & self.bitboards[KING][by_color]:
+            return True
+
+        return False
+
+    def is_in_check(self, color):
+        king_sq = self.bitboards[KING][color].bit_length() - 1
+        return self.is_square_attacked(king_sq, color ^ 1)
+    
+    def is_in_check(self, color):
+        king_square = self.bitboards[KING][color].bit_length() - 1
+        return self.is_square_attacked(king_square, color ^ 1)
     
 if __name__ == "__main__":
     board = Board(fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")

@@ -6,6 +6,73 @@ def get_square(notation):
     return rank * 8 + file
 
 def make_move(board, move):
+    square_start = move[0]
+    square_end = move[1]
+    flag = move[2] if len(move) > 2 else QUIET
+
+    # reset en passant — only valid for one move
+    board.en_passant_square = None
+
+    # remove captured piece
+    if flag == CAPTURE:
+        for piece in range(N_PIECES):
+            if board.bitboards[piece][board.turn ^ 1] & (1 << square_end):
+                board.bitboards[piece][board.turn ^ 1] &= ~(1 << square_end)
+                break
+        # if a rook is captured, remove that castling right
+        if square_end == 0:  board.queen_castle[WHITE] = False
+        if square_end == 7:  board.king_castle[WHITE]  = False
+        if square_end == 56: board.queen_castle[BLACK] = False
+        if square_end == 63: board.king_castle[BLACK]  = False
+
+    # remove en passant captured pawn (on different square than to_square)
+    if flag == EN_PASSANT:
+        captured_sq = square_end - 8 if board.turn == WHITE else square_end + 8
+        board.bitboards[PAWN][board.turn ^ 1] &= ~(1 << captured_sq)
+
+    # update castling rights when king or rook moves
+    if square_start == 4:  board.king_castle[WHITE] = False; board.queen_castle[WHITE] = False
+    if square_start == 60: board.king_castle[BLACK] = False; board.queen_castle[BLACK] = False
+    if square_start == 0:  board.queen_castle[WHITE] = False
+    if square_start == 7:  board.king_castle[WHITE]  = False
+    if square_start == 56: board.queen_castle[BLACK] = False
+    if square_start == 63: board.king_castle[BLACK]  = False
+
+    # move the piece
+    for piece in range(N_PIECES):
+        if board.bitboards[piece][board.turn] & (1 << square_start):
+            board.bitboards[piece][board.turn] &= ~(1 << square_start)
+            # handle promotion
+            if flag == PROMOTION:
+                promo_piece = move[3]
+                board.bitboards[promo_piece][board.turn] |= 1 << square_end
+            else:
+                board.bitboards[piece][board.turn] |= 1 << square_end
+                # set en passant square if double pawn push
+                if piece == PAWN:
+                    if board.turn == WHITE and square_end - square_start == 16:
+                        board.en_passant_square = square_start + 8
+                    elif board.turn == BLACK and square_start - square_end == 16:
+                        board.en_passant_square = square_start - 8
+                # move rook when castling
+                if flag == CASTLING:
+                    if square_end == 6:    # white O-O
+                        board.bitboards[ROOK][WHITE] &= ~(1 << 7)
+                        board.bitboards[ROOK][WHITE] |=  (1 << 5)
+                    elif square_end == 2:  # white O-O-O
+                        board.bitboards[ROOK][WHITE] &= ~(1 << 0)
+                        board.bitboards[ROOK][WHITE] |=  (1 << 3)
+                    elif square_end == 62: # black O-O
+                        board.bitboards[ROOK][BLACK] &= ~(1 << 63)
+                        board.bitboards[ROOK][BLACK] |=  (1 << 61)
+                    elif square_end == 58: # black O-O-O
+                        board.bitboards[ROOK][BLACK] &= ~(1 << 56)
+                        board.bitboards[ROOK][BLACK] |=  (1 << 59)
+            return
+
+    raise ValueError("Invalid move")
+
+def make_move_str(board, move):
 
     start = move[:2]
     end = move[-2:]
@@ -41,9 +108,9 @@ def generate_pawn_moves(board, moves):
 
     empty = board.get_empty_squares()
 
-    # single push
+    # single push (promotions excluded)
     if color == WHITE:
-        targets = (pawns << 8) & empty
+        targets = (pawns << 8) & empty & NOT_RANK8
         # targets is all potential next position
         while targets:
             lowest_bit = targets & -targets
@@ -53,7 +120,7 @@ def generate_pawn_moves(board, moves):
             targets &= targets - 1 # remove that square from targets
 
     if color == BLACK:
-        targets = (pawns >> 8) & empty
+        targets = (pawns >> 8) & empty & NOT_RANK1
         # targets is all potential next position
         while targets:
             lowest_bit = targets & -targets
@@ -91,7 +158,7 @@ def generate_pawn_moves(board, moves):
             lowest_bit = targets & -targets
             square = lowest_bit.bit_length() - 1
             from_square = square - 9
-            moves.append((from_square, square))
+            moves.append((from_square, square, CAPTURE))
             targets &= targets - 1
 
         # captures left
@@ -100,36 +167,107 @@ def generate_pawn_moves(board, moves):
             lowest_bit  = targets & -targets
             square = lowest_bit.bit_length() - 1
             from_square = square - 7
-            moves.append((from_square, square))
+            moves.append((from_square, square, CAPTURE))
             targets &= targets - 1
 
     if color == BLACK:
         # captures left
-        targets = ((pawns & NOT_FILE8) >> 9) & enemies
+        targets = ((pawns & NOT_FILE1) >> 9) & enemies
         while targets:
             lowest_bit = targets & -targets
             square = lowest_bit.bit_length() - 1
             from_square = square + 9
-            moves.append((from_square, square))
+            moves.append((from_square, square, CAPTURE))
             targets &= targets - 1
 
         # captures right
-        targets = ((pawns & NOT_FILE1) >> 7) & enemies
+        targets = ((pawns & NOT_FILE8) >> 7) & enemies
         while targets:
             lowest_bit  = targets & -targets
             square = lowest_bit.bit_length() - 1
             from_square = square + 7
-            moves.append((from_square, square))
+            moves.append((from_square, square, CAPTURE))
             targets &= targets - 1
 
     # en passant
     if board.en_passant_square is not None:
         ep_bb = 1 << board.en_passant_square
         if color == WHITE:
-            attackers = ((ep_bb & NOT_FILE8) >> 9 | (ep_bb & NOT_FILE1) >> 7) & pawns
+            attackers = ((ep_bb & NOT_FILE1) >> 9 | (ep_bb & NOT_FILE8) >> 7) & pawns
+        if color == BLACK:
+            attackers = ((ep_bb & NOT_FILE8) << 9 | (ep_bb & NOT_FILE1) << 7) & pawns
 
+        while attackers:
+            lowest_bit  = attackers & -attackers
+            from_square = lowest_bit.bit_length() - 1
+            moves.append((from_square, board.en_passant_square, EN_PASSANT))
+            attackers  &= attackers - 1
 
     # promotions
+    if color == WHITE:
+        targets = (pawns << 8) & empty & RANK8
+
+        while targets:
+            lowest_bit = targets & -targets
+            square = lowest_bit.bit_length() - 1
+            from_square = square - 8
+            for piece in [QUEEN, ROOK, BISHOP, KNIGHT]:
+                moves.append((from_square, square, PROMOTION, piece))
+            targets &= targets - 1
+
+    if color == BLACK:
+        targets = (pawns >> 8) & empty & RANK1
+
+        while targets:
+            lowest_bit = targets & -targets
+            square = lowest_bit.bit_length() - 1
+            from_square = square + 8
+            for piece in [QUEEN, ROOK, BISHOP, KNIGHT]:
+                moves.append((from_square, square, PROMOTION, piece))
+            targets &= targets - 1
+
+    # capture promotions
+    if color == WHITE:
+        # capture right + promote
+        targets = ((pawns & NOT_FILE8) << 9) & enemies & RANK8
+        while targets:
+            lowest_bit  = targets & -targets
+            square = lowest_bit.bit_length() - 1
+            from_square = square - 9
+            for piece in [QUEEN, ROOK, BISHOP, KNIGHT]:
+                moves.append((from_square, square, PROMOTION, piece))
+            targets &= targets - 1
+
+        # capture left + promote
+        targets = ((pawns & NOT_FILE1) << 7) & enemies & RANK8
+        while targets:
+            lowest_bit  = targets & -targets
+            square      = lowest_bit.bit_length() - 1
+            from_square = square - 7
+            for piece in [QUEEN, ROOK, BISHOP, KNIGHT]:
+                moves.append((from_square, square, PROMOTION, piece))
+            targets &= targets - 1
+
+    if color == BLACK:
+        # capture right + promote
+        targets = ((pawns & NOT_FILE8) >> 7) & enemies & RANK1
+        while targets:
+            lowest_bit  = targets & -targets
+            square = lowest_bit.bit_length() - 1
+            from_square = square + 7
+            for piece in [QUEEN, ROOK, BISHOP, KNIGHT]:
+                moves.append((from_square, square, PROMOTION, piece))
+            targets &= targets - 1
+
+        # capture left + promote
+        targets = ((pawns & NOT_FILE1) >> 9) & enemies & RANK1
+        while targets:
+            lowest_bit  = targets & -targets
+            square      = lowest_bit.bit_length() - 1
+            from_square = square + 9
+            for piece in [QUEEN, ROOK, BISHOP, KNIGHT]:
+                moves.append((from_square, square, PROMOTION, piece))
+            targets &= targets - 1
 
 def generate_knight_moves(board, moves):
     color = board.turn
@@ -277,6 +415,38 @@ def generate_king_moves(board, moves):
         else:
             moves.append((from_square, square, QUIET))
         targets &= targets - 1
+
+    # castling
+    occupied = board.get_occupied_squares(WHITE) | board.get_occupied_squares(BLACK)
+    enemy = color ^ 1
+
+    if color == WHITE:
+        if board.king_castle[WHITE]:
+            if not (occupied & ((1 << 5) | (1 << 6))):
+                if not board.is_square_attacked(4, enemy) and \
+                   not board.is_square_attacked(5, enemy) and \
+                   not board.is_square_attacked(6, enemy):
+                    moves.append((4, 6, CASTLING))
+        if board.queen_castle[WHITE]:
+            if not (occupied & ((1 << 1) | (1 << 2) | (1 << 3))):
+                if not board.is_square_attacked(4, enemy) and \
+                   not board.is_square_attacked(3, enemy) and \
+                   not board.is_square_attacked(2, enemy):
+                    moves.append((4, 2, CASTLING))
+
+    if color == BLACK:
+        if board.king_castle[BLACK]:
+            if not (occupied & ((1 << 61) | (1 << 62))):
+                if not board.is_square_attacked(60, enemy) and \
+                   not board.is_square_attacked(61, enemy) and \
+                   not board.is_square_attacked(62, enemy):
+                    moves.append((60, 62, CASTLING))
+        if board.queen_castle[BLACK]:
+            if not (occupied & ((1 << 57) | (1 << 58) | (1 << 59))):
+                if not board.is_square_attacked(60, enemy) and \
+                   not board.is_square_attacked(59, enemy) and \
+                   not board.is_square_attacked(58, enemy):
+                    moves.append((60, 58, CASTLING))
 
 if __name__ == "__main__":
     from board import Board
