@@ -2,3 +2,5 @@
 .vscode
 
 *.pyc
+
+logs/

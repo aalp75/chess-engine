@@ -10,11 +10,11 @@ def make_move(board, move):
     square_end = move[1]
     flag = move[2] if len(move) > 2 else QUIET
 
-    # reset en passant — only valid for one move
+    # reset en passant (only valid for one move)
     board.en_passant_square = None
 
     # remove captured piece
-    if flag == CAPTURE:
+    if flag == CAPTURE or flag == PROMOTION:
         for piece in range(N_PIECES):
             if board.bitboards[piece][board.turn ^ 1] & (1 << square_end):
                 board.bitboards[piece][board.turn ^ 1] &= ~(1 << square_end)
@@ -31,12 +31,20 @@ def make_move(board, move):
         board.bitboards[PAWN][board.turn ^ 1] &= ~(1 << captured_sq)
 
     # update castling rights when king or rook moves
-    if square_start == 4:  board.king_castle[WHITE] = False; board.queen_castle[WHITE] = False
-    if square_start == 60: board.king_castle[BLACK] = False; board.queen_castle[BLACK] = False
-    if square_start == 0:  board.queen_castle[WHITE] = False
-    if square_start == 7:  board.king_castle[WHITE]  = False
-    if square_start == 56: board.queen_castle[BLACK] = False
-    if square_start == 63: board.king_castle[BLACK]  = False
+    if square_start == 4:  
+        board.king_castle[WHITE] = False
+        board.queen_castle[WHITE] = False
+    if square_start == 60: 
+        board.king_castle[BLACK] = False
+        board.queen_castle[BLACK] = False
+    if square_start == 0:  
+        board.queen_castle[WHITE] = False
+    if square_start == 7:  
+        board.king_castle[WHITE]  = False
+    if square_start == 56: 
+        board.queen_castle[BLACK] = False
+    if square_start == 63: 
+        board.king_castle[BLACK]  = False
 
     # move the piece
     for piece in range(N_PIECES):
@@ -152,8 +160,8 @@ def generate_pawn_moves(board, moves):
     enemies = board.get_occupied_squares(color ^ 1)
 
     if color == WHITE:
-        # captures right
-        targets = ((pawns & NOT_FILE8) << 9) & enemies
+        # captures right (exclude rank 8 — handled by capture promotions)
+        targets = ((pawns & NOT_FILE8) << 9) & enemies & NOT_RANK8
         while targets:
             lowest_bit = targets & -targets
             square = lowest_bit.bit_length() - 1
@@ -161,8 +169,8 @@ def generate_pawn_moves(board, moves):
             moves.append((from_square, square, CAPTURE))
             targets &= targets - 1
 
-        # captures left
-        targets = ((pawns & NOT_FILE1) << 7) & enemies
+        # captures left (exclude rank 8 — handled by capture promotions)
+        targets = ((pawns & NOT_FILE1) << 7) & enemies & NOT_RANK8
         while targets:
             lowest_bit  = targets & -targets
             square = lowest_bit.bit_length() - 1
@@ -172,7 +180,8 @@ def generate_pawn_moves(board, moves):
 
     if color == BLACK:
         # captures left
-        targets = ((pawns & NOT_FILE1) >> 9) & enemies
+        # captures left (exclude rank 1 — handled by capture promotions)
+        targets = ((pawns & NOT_FILE1) >> 9) & enemies & NOT_RANK1
         while targets:
             lowest_bit = targets & -targets
             square = lowest_bit.bit_length() - 1
@@ -180,8 +189,8 @@ def generate_pawn_moves(board, moves):
             moves.append((from_square, square, CAPTURE))
             targets &= targets - 1
 
-        # captures right
-        targets = ((pawns & NOT_FILE8) >> 7) & enemies
+        # captures right (exclude rank 1 — handled by capture promotions)
+        targets = ((pawns & NOT_FILE8) >> 7) & enemies & NOT_RANK1
         while targets:
             lowest_bit  = targets & -targets
             square = lowest_bit.bit_length() - 1

@@ -42,13 +42,6 @@ class Board:
         parts += ['-'] * (6 - len(parts)) # if all parts not there
         placement, turn, castling, en_passant, halfmove, fullmove = parts
 
-        print("placement", placement)
-        print("turn:", turn)
-        print("castling:", castling)
-        print("en_passant:", en_passant)
-        print("halfmove:", halfmove)
-        print("fullmove:", fullmove)
-
         # placement
         for ite, rank_str in enumerate(placement.split('/')):
             rank = 7 - ite
@@ -95,6 +88,25 @@ class Board:
         board += '  a b c d e f g h\n'
         return board
     
+    def save_state(self):
+        return (
+            [bb[:] for bb in self.bitboards],
+            self.en_passant_square,
+            self.king_castle[:],
+            self.queen_castle[:],
+            self.turn,
+        )
+
+    def restore_state(self, state):
+        bbs, ep, kc, qc, turn = state
+        for i in range(len(self.bitboards)):
+            self.bitboards[i][0] = bbs[i][0]
+            self.bitboards[i][1] = bbs[i][1]
+        self.en_passant_square = ep
+        self.king_castle = kc
+        self.queen_castle = qc
+        self.turn = turn
+
     def get_occupied_squares(self, color):
         res = 0
         for piece in PIECES:
@@ -178,9 +190,8 @@ class Board:
         king_sq = self.bitboards[KING][color].bit_length() - 1
         return self.is_square_attacked(king_sq, color ^ 1)
     
-    def is_in_check(self, color):
-        king_square = self.bitboards[KING][color].bit_length() - 1
-        return self.is_square_attacked(king_square, color ^ 1)
+    def next_turn(self):
+        self.turn ^= 1
     
 if __name__ == "__main__":
     board = Board(fen="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
