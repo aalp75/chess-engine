@@ -4,3 +4,11 @@
 *.pyc
 
 logs/
+
+srcold/
+
+engine
+
+notes.txt
+
+.perft.pt*
