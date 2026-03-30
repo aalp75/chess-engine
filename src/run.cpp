@@ -4,6 +4,6 @@
 #include "board.h"
 
 int main() {
-    int maxDepth = 7;
+    int maxDepth = 9;
     run(maxDepth);
 }

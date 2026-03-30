@@ -17,6 +17,9 @@ constexpr int WHITE = 0;
 constexpr int BLACK = 1;
 constexpr int PIECES = 7;
 
+// TODO: at some point at an enum PieceType and Piece where Piece incorporates the 
+// color as well, example W_PAWN, W_KNIGHT, ..., B_PAWN, ...
+
 
 enum Piece { NO_PIECE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
 

@@ -10,38 +10,21 @@ int evaluate(const Board& board) {
 
     // split the evaluation for mid game and end game for king
 
-    // end game is defined either:
-    // 1 - both side have no queens
-    // 2 - every side has a queen and no more than a minor piece
+    // end game is defined when the total material on the board is low (below a treshold)
 
-    bool endGame = false;
+    int material[2] = {
+        PIECE_VALUES[KNIGHT] * __builtin_popcountll(board.bitboards[KNIGHT][WHITE]) +
+        PIECE_VALUES[BISHOP] * __builtin_popcountll(board.bitboards[BISHOP][WHITE]) +
+        PIECE_VALUES[ROOK]   * __builtin_popcountll(board.bitboards[ROOK][WHITE])   +
+        PIECE_VALUES[QUEEN]  * __builtin_popcountll(board.bitboards[QUEEN][WHITE]),
 
-    int minorPieces[2] = {
-        __builtin_popcountll(board.bitboards[BISHOP][WHITE]) + 
-        __builtin_popcountll(board.bitboards[KNIGHT][WHITE]),
-
-        __builtin_popcountll(board.bitboards[BISHOP][BLACK]) +
-        __builtin_popcountll(board.bitboards[KNIGHT][BLACK])
-    };
-    int rooks[2] = {
-        __builtin_popcountll(board.bitboards[ROOK][WHITE]),
-        __builtin_popcountll(board.bitboards[ROOK][BLACK])
+        PIECE_VALUES[KNIGHT] * __builtin_popcountll(board.bitboards[KNIGHT][BLACK]) +
+        PIECE_VALUES[BISHOP] * __builtin_popcountll(board.bitboards[BISHOP][BLACK]) +
+        PIECE_VALUES[ROOK]   * __builtin_popcountll(board.bitboards[ROOK][BLACK])   +
+        PIECE_VALUES[QUEEN]  * __builtin_popcountll(board.bitboards[QUEEN][BLACK])
     };
 
-    int queens[2] = {
-        __builtin_popcountll(board.bitboards[QUEEN][WHITE]),
-        __builtin_popcountll(board.bitboards[QUEEN][BLACK])
-    };
-
-    if (queens[WHITE] == 0 && queens[BLACK] == 0) {
-        endGame = true;
-    }
-
-    if (rooks[WHITE] == 0 && rooks[BLACK] == 0 && 
-        queens[WHITE] == 1 && queens[BLACK] == 1 && 
-        minorPieces[WHITE] <= 1 && minorPieces[BLACK] <= 1) {
-        endGame = true;
-    }
+    bool endGame = (material[WHITE] + material[BLACK]) < 1600;
 
     for (int piece = PAWN; piece <= KING; piece++) {
         const int* pst = PST[piece];

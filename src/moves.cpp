@@ -4,6 +4,7 @@
 #include "constants.h"
 #include "board.h"
 #include "moveList.h"
+#include "magic.h"
 
 /*
 
@@ -53,26 +54,26 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
     int oldCastle = (board.kingCastle[WHITE]  ? 1 : 0) | (board.queenCastle[WHITE] ? 2 : 0)
                   | (board.kingCastle[BLACK]  ? 4 : 0) | (board.queenCastle[BLACK] ? 8 : 0);
 
-    Zobrist::updateKeyCastle(board.key, oldCastle);
+    zobrist::updateKeyCastle(board.key, oldCastle);
 
     if (board.enPassant) {
-        Zobrist::updateKeyEnPassant(board.key, board.enPassantSquare);
+        zobrist::updateKeyEnPassant(board.key, board.enPassantSquare);
     }
 
     board.enPassant = false;
 
-    Zobrist::updateKeyPiece(board.key, piece, color, fromSquare);
+    zobrist::updateKeyPiece(board.key, piece, color, fromSquare);
     int landingPiece = (type == PROMOTION) ? promoPiece : piece;
-    Zobrist::updateKeyPiece(board.key, landingPiece, color, toSquare);
+    zobrist::updateKeyPiece(board.key, landingPiece, color, toSquare);
 
     if (captured != NO_PIECE && type != EN_PASSANT)
-        Zobrist::updateKeyPiece(board.key, captured, enemyColor, toSquare);
+        zobrist::updateKeyPiece(board.key, captured, enemyColor, toSquare);
 
     // set en passant square for double pawn push
     if (piece == PAWN && std::abs(toSquare - fromSquare) == 16) {
         board.enPassant = true;
         board.enPassantSquare = (fromSquare + toSquare) / 2;
-        Zobrist::updateKeyEnPassant(board.key, board.enPassantSquare);
+        zobrist::updateKeyEnPassant(board.key, board.enPassantSquare);
     }
 
     board.bitboards[piece][color] &= ~(1ULL << fromSquare);
@@ -112,7 +113,7 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
         board.pieceBoard[capturedSquare] = NO_PIECE;
 
         newState.capturedSquare = capturedSquare;
-        Zobrist::updateKeyPiece(board.key, PAWN, enemyColor, capturedSquare);
+        zobrist::updateKeyPiece(board.key, PAWN, enemyColor, capturedSquare);
     }
 
     // update castle if a king or a rook move
@@ -139,7 +140,7 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
 
     int newCastle = (board.kingCastle[WHITE]  ? 1 : 0) | (board.queenCastle[WHITE] ? 2 : 0)
                     | (board.kingCastle[BLACK]  ? 4 : 0) | (board.queenCastle[BLACK] ? 8 : 0);
-    Zobrist::updateKeyCastle(board.key, newCastle);
+    zobrist::updateKeyCastle(board.key, newCastle);
 
     // promotion
     if (type == PROMOTION) {
@@ -158,8 +159,8 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
             board.wbPieces[WHITE] |=  (1ULL << 5);
             board.pieceBoard[7] = NO_PIECE;
             board.pieceBoard[5] = ROOK;
-            Zobrist::updateKeyPiece(board.key, ROOK, WHITE, 7);
-            Zobrist::updateKeyPiece(board.key, ROOK, WHITE, 5);
+            zobrist::updateKeyPiece(board.key, ROOK, WHITE, 7);
+            zobrist::updateKeyPiece(board.key, ROOK, WHITE, 5);
         }
         else if (toSquare == 2) { // white O-O-O
             board.bitboards[ROOK][WHITE] &= ~(1ULL << 0);
@@ -168,8 +169,8 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
             board.wbPieces[WHITE] |=  (1ULL << 3);
             board.pieceBoard[0] = NO_PIECE;
             board.pieceBoard[3] = ROOK;
-            Zobrist::updateKeyPiece(board.key, ROOK, WHITE, 0);
-            Zobrist::updateKeyPiece(board.key, ROOK, WHITE, 3);
+            zobrist::updateKeyPiece(board.key, ROOK, WHITE, 0);
+            zobrist::updateKeyPiece(board.key, ROOK, WHITE, 3);
         }
         else if (toSquare == 62) { // black O-O
             board.bitboards[ROOK][BLACK] &= ~(1ULL << 63);
@@ -178,8 +179,8 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
             board.wbPieces[BLACK] |=  (1ULL << 61);
             board.pieceBoard[63] = NO_PIECE;
             board.pieceBoard[61] = ROOK;
-            Zobrist::updateKeyPiece(board.key, ROOK, BLACK, 63);
-            Zobrist::updateKeyPiece(board.key, ROOK, BLACK, 61);
+            zobrist::updateKeyPiece(board.key, ROOK, BLACK, 63);
+            zobrist::updateKeyPiece(board.key, ROOK, BLACK, 61);
         }
         else if (toSquare == 58) { // black O-O-O
             board.bitboards[ROOK][BLACK] &= ~(1ULL << 56);
@@ -188,14 +189,14 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
             board.wbPieces[BLACK] |=  (1ULL << 59);
             board.pieceBoard[56] = NO_PIECE;
             board.pieceBoard[59] = ROOK;
-            Zobrist::updateKeyPiece(board.key, ROOK, BLACK, 56);
-            Zobrist::updateKeyPiece(board.key, ROOK, BLACK, 59);
+            zobrist::updateKeyPiece(board.key, ROOK, BLACK, 56);
+            zobrist::updateKeyPiece(board.key, ROOK, BLACK, 59);
         }
     }
 
     board.occupied = board.wbPieces[WHITE] | board.wbPieces[BLACK];
 
-    Zobrist::updateKeyside(board.key);
+    zobrist::updateKeyside(board.key);
     board.turn ^= 1;
 }
 
@@ -290,6 +291,29 @@ void undoMove(Board& board, StateInfo* states, int ply) {
     board.turn             ^= 1;
     board.key              =state.key;
 
+}
+
+void doNullMove(Board& board, StateInfo* states, int ply) {
+    StateInfo& newState = states[ply];
+    newState.enPassant       = board.enPassant;
+    newState.enPassantSquare = board.enPassantSquare;
+    newState.key             = board.key;
+
+    if (board.enPassant) {
+        zobrist::updateKeyEnPassant(board.key, board.enPassantSquare);
+        board.enPassant = false;
+    }
+
+    zobrist::updateKeyside(board.key);
+    board.turn ^= 1;
+}
+
+void undoNullMove(Board& board, StateInfo* states, int ply) {
+    StateInfo& state = states[ply];
+    board.key             = state.key;
+    board.enPassant       = state.enPassant;
+    board.enPassantSquare = state.enPassantSquare;
+    board.turn            ^= 1;
 }
 
 MoveList generateMoves(const Board& board) {

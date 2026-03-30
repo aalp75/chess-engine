@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <ctime>
 #include <filesystem>
+#include <cstring>
 
 #include "uci.h"
 #include "search.h"
@@ -17,6 +18,7 @@
 #include "evaluate.h"
 #include "constants.h"
 #include "moveList.h"
+#include "transpositionTable.h"
 
 /*
     TODO: Add a small array int[] infos that keeps all the important infos for debugging:
@@ -35,8 +37,51 @@ static void logMsg(const std::string& dir, const std::string& msg) {
 }
 
 static void send(const std::string& msg) {
-    logMsg(">", msg);
+    logMsg("SEND   ", msg);
     std::cout << msg << "\n";
+}
+
+std::string formatNumber(long long nodes) {
+    if (nodes >= 1000000) return std::to_string(nodes / 100000 / 10.0).substr(0, 4) + "M";
+    if (nodes >= 1000)    return std::to_string(nodes / 100 / 10.0).substr(0, 4) + "K";
+    return std::to_string(nodes);
+}
+
+std::string formatTime(long long ms) {
+    if (ms >= 60000) return std::to_string(ms / 60000) + "m" + std::to_string((ms % 60000) / 1000) + "s";
+    if (ms >= 1000)  return std::to_string(ms / 1000) + "." + std::to_string((ms % 1000) / 100) + "s";
+    return std::to_string(ms) + "ms";
+}
+
+static void sendResults(const SearchResult& results) {
+
+    std::string uci = "0000";
+
+    if (results.bestMove != 0) {
+        uci = moveToUci(results.bestMove);
+    }
+
+    long long nps = (results.ms > 0) ? (results.stats.nodes * 1000 / results.ms) : 0;
+
+    logMsg("DEBUG  ", "Move #" + std::to_string(results.countMove));
+    logMsg("DEBUG  ", "Score: " + std::to_string(results.score));
+    logMsg("DEBUG  ", "Depth: " + std::to_string(results.depth));
+    logMsg("DEBUG  ", "Nodes: " + formatNumber(results.stats.nodes));
+    logMsg("DEBUG  ", "Q-Nodes: " + formatNumber(results.stats.qnodes));
+    logMsg("DEBUG  ", "Search time: " + formatTime(results.ms));
+    logMsg("DEBUG  ", "NPS: "   + formatNumber(nps) + "/s");
+    logMsg("DEBUG  ", "TT Hit: " + formatNumber(results.stats.ttHits));
+
+    std::string info = "info depth "  + std::to_string(results.depth)
+                        + " score cp " + std::to_string(results.score) 
+                        + " nodes "    + std::to_string(results.stats.nodes) 
+                        + " nps "      + std::to_string(nps) 
+                        + " time "     + std::to_string(results.ms) 
+                        + " pv "       + uci;
+                        
+    send(info);
+    send("bestmove " + uci);
+    logMsg("", "\n");
 }
 
 static const std::unordered_map<char, int> PROMO_CHAR = {
@@ -125,31 +170,40 @@ void run(int initialDepth) {
 
     std::string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     Board board(startFen);
+    int countMove = 0;
 
     std::string line;
     while (std::getline(std::cin, line)) {
-        logMsg("<", line);
+        logMsg("RECEIVE", line);
 
         std::vector<std::string> tokens = split(line);
         if (tokens.empty()) continue;
 
         if (tokens[0] == "uci") {
-            send("id name Toti");
+            send("id name Optionfish");
             send("id author aalp75");
             send("option name Move Overhead type spin default 10 min 0 max 5000");
             send("option name Threads type spin default 1 min 1 max 1");
             send("uciok");
 
-        } else if (tokens[0] == "isready") {
+        } 
+        else if (tokens[0] == "isready") {
             send("readyok");
 
-        } else if (tokens[0] == "setoption") {
+        } 
+        else if (tokens[0] == "setoption") {
             // not implemented for now
 
-        } else if (tokens[0] == "ucinewgame") {
+        } 
+        else if (tokens[0] == "ucinewgame") {
+            // play a sound to notify a new game found on lichess
+            (void)system("paplay /usr/share/sounds/freedesktop/stereo/message.oga &");
             board = Board(startFen);
+            std::memset(tt, 0, sizeof(tt)); // clear transposition table
+            countMove = 0;
 
-        } else if (tokens[0] == "position") {
+        } 
+        else if (tokens[0] == "position") {
             if (tokens.size() >= 2 && tokens[1] == "startpos") {
                 board = Board(startFen);
 
@@ -158,7 +212,8 @@ void run(int initialDepth) {
                     std::vector<std::string> moves(it + 1, tokens.end());
                     applyMoves(board, moves);
                 }
-            } else if (tokens.size() >= 3 && tokens[1] == "fen") {
+            } 
+            else if (tokens.size() >= 3 && tokens[1] == "fen") {
                 auto it = std::find(tokens.begin(), tokens.end(), "moves");
                 size_t fenEnd = (it != tokens.end())
                     ? std::distance(tokens.begin(), it)
@@ -200,23 +255,29 @@ void run(int initialDepth) {
                 }
             }
 
-            int score = 0;
-            long long nodes = 0;
-            Move move = findBestMove(board, depth, score, nodes);
+            auto searchStart = std::chrono::steady_clock::now();
+            SearchStats stats;
+            Move move = findBestMove(board, depth, stats);
+            countMove++;
+            auto searchEnd = std::chrono::steady_clock::now();
+            long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(searchEnd - searchStart).count();
 
-            if (move != 0) {
-                std::string uci = moveToUci(move);
-                send("info depth " + std::to_string(depth) + " score cp " + std::to_string(score) + " nodes " + std::to_string(nodes) + " pv " + uci);
-                send("bestmove " + uci);
-            } else {
-                send("info depth " + std::to_string(depth) + " score cp " + std::to_string(score) + " nodes " + std::to_string(nodes));
-                send("bestmove 0000");
-            }
+            SearchResult results;
+            results.countMove = countMove;
+            results.bestMove = move;
+            results.score = stats.score;
+            results.depth = depth;
+            results.ms = ms;
+            results.stats = stats;
 
-        } else if (tokens[0] == "stop") {
+            sendResults(results);
+
+        } 
+        else if (tokens[0] == "stop") {
             // nothing to do
 
-        } else if (tokens[0] == "quit") {
+        } 
+        else if (tokens[0] == "quit") {
             break;
         }
 

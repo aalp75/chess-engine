@@ -4,8 +4,9 @@
 #include <random>
 
 #include "board.h"
+#include "magic.h"
 
-namespace Zobrist {
+namespace zobrist {
 
     uint64_t pieceKeys[PIECES][COLORS][SQUARES];
     uint64_t sideKey;
@@ -57,7 +58,8 @@ namespace Zobrist {
 }
 
 Board::Board(std::string fen) {
-    Zobrist::initZobrist();
+    magic::initMagicTables();
+    zobrist::initZobrist();
     std::istringstream ss(fen);
     std::string placement, activeColor, castling, enPassantStr;
     ss >> placement >> activeColor >> castling >> enPassantStr;
@@ -280,11 +282,11 @@ Key Board::hash() const {
             color = BLACK;
         }
 
-        key ^= Zobrist::pieceKeys[piece][color][square];
+        key ^= zobrist::pieceKeys[piece][color][square];
     }
 
     if (turn == BLACK) {
-        key ^= Zobrist::sideKey;
+        key ^= zobrist::sideKey;
     }
 
     int castle = 0;
@@ -293,10 +295,10 @@ Key Board::hash() const {
     if (kingCastle[BLACK])  castle |= 4;
     if (queenCastle[BLACK]) castle |= 8;
 
-    key ^= Zobrist::castleKeys[castle];
+    key ^= zobrist::castleKeys[castle];
 
     if (enPassant) {
-        key ^= Zobrist::enPassantKeys[enPassantSquare];
+        key ^= zobrist::enPassantKeys[enPassantSquare];
     }
 
     return key;

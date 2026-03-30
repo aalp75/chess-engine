@@ -29,6 +29,9 @@ struct StateInfo {
 void doMove(Board& board, Move move, StateInfo* states, int ply);
 void undoMove(Board& board, StateInfo* states, int ply);
 
+void doNullMove(Board& board, StateInfo* states, int ply);
+void undoNullMove(Board& board, StateInfo* states, int ply);
+
 MoveList generateMoves(const Board& board);
 
 void generatePawnMoves(const Board& board, MoveList& moves);

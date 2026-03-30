@@ -9,6 +9,7 @@
 #include "moveOrdering.h"
 #include "moveList.h"
 #include "transpositionTable.h"
+#include "uci.h"
 
 /*
     TODO: too much duplicate code in findBestMove and negamax
@@ -17,9 +18,9 @@
 */
 
 constexpr int INF = 100'000;
-constexpr int MAX_QDEPTH = 10;
+constexpr int MAX_QDEPTH = 5;
 
-Move findBestMove(Board& board, int maxDepth, int& score, long long& nodes) {
+Move findBestMove(Board& board, int maxDepth, SearchStats& stats) {
 
     StateInfo states[256];
     Move bestMove = 0;
@@ -52,7 +53,7 @@ Move findBestMove(Board& board, int maxDepth, int& score, long long& nodes) {
             Move move = moves.moves[i];
             doMove(board, move, states, ply);
             if (!board.isInCheck(board.turn ^ 1)) {
-                int score = -negamax(board, states, depth - 1, -INF, -currentBestScore, ply + 1, nodes);
+                int score = -negamax(board, states, depth - 1, -INF, -currentBestScore, ply + 1, stats);
                 if (score > currentBestScore) {
                     currentBestScore = score;
                     currentBestMove = move;
@@ -66,22 +67,32 @@ Move findBestMove(Board& board, int maxDepth, int& score, long long& nodes) {
         }
     }
 
-    score = bestScore;
+    stats.score = bestScore;
     return bestMove;
 }
 
-int negamax(Board& board, StateInfo* states, int depth, int alpha, int beta, int ply, long long& nodes) {
-    nodes++;
-
+int negamax(Board& board, StateInfo* states, int depth, int alpha, int beta, int ply, SearchStats& stats) {
+    stats.nodes++;
     if (depth == 0) {
-        return quiescenceSearch(board, states, alpha, beta, ply + 1, 0, nodes);
+        return quiescenceSearch(board, states, alpha, beta, ply + 1, 0, stats);
     }
-
 
     Key key = board.key;
     int ttScore;
     if (probeTT(key, depth, alpha, beta, ttScore)) {
+        stats.ttHits++;
         return ttScore;
+    }
+
+    if (depth >= 3 && !board.isInCheck(board.turn)) {
+
+        doNullMove(board, states, ply);
+        int nullScore = -negamax(board, states, depth - 3, -beta, -beta + 1, ply + 1, stats);
+        undoNullMove(board, states, ply);
+
+        if (nullScore >= beta) {
+            return beta;
+        }
     }
 
     int originalAlpha = alpha;
@@ -110,7 +121,7 @@ int negamax(Board& board, StateInfo* states, int depth, int alpha, int beta, int
             undoMove(board, states, ply);   
             continue;
         }
-        int score = -negamax(board, states, depth - 1, -beta, -alpha, ply + 1, nodes);
+        int score = -negamax(board, states, depth - 1, -beta, -alpha, ply + 1, stats);
         undoMove(board, states, ply);   
         legal += 1;
         if (score >= beta) { // prune
@@ -138,8 +149,8 @@ int negamax(Board& board, StateInfo* states, int depth, int alpha, int beta, int
     return alpha;
 }
 
-int quiescenceSearch(Board& board, StateInfo* states, int alpha, int beta, int ply, int qdepth, long long& nodes) {
-    nodes++;
+int quiescenceSearch(Board& board, StateInfo* states, int alpha, int beta, int ply, int qdepth, SearchStats& stats) {
+    
     int eval = evaluate(board);
     if (eval >= beta) {
         return beta;
@@ -147,6 +158,8 @@ int quiescenceSearch(Board& board, StateInfo* states, int alpha, int beta, int p
     if (qdepth > MAX_QDEPTH) {
         return eval;
     }
+
+    stats.qnodes++;
 
     alpha = std::max(alpha, eval);
 
@@ -170,7 +183,7 @@ int quiescenceSearch(Board& board, StateInfo* states, int alpha, int beta, int p
         }
         doMove(board, move, states, ply);
         if (!board.isInCheck(board.turn ^ 1)) {
-            int score = -quiescenceSearch(board, states, -beta, -alpha, ply + 1, qdepth + 1, nodes);
+            int score = -quiescenceSearch(board, states, -beta, -alpha, ply + 1, qdepth + 1, stats);
             if (score >= beta) { 
                 undoMove(board, states, ply); 
                 return beta;

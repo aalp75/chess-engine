@@ -5,7 +5,7 @@
 
 #include "constants.h"
 
-namespace Zobrist {
+namespace zobrist {
     void updateKeyPiece(Key& key, int piece, int color, int square);
     void updateKeyside(Key& key);
     void updateKeyCastle(Key& key, int castle);

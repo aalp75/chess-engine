@@ -19,7 +19,7 @@ struct TTEntry {
     TTFlag flag = TT_EXACT;
 };
 
-constexpr int TT_SIZE = 1 << 20;
+constexpr int TT_SIZE = 1 << 23;
 extern TTEntry tt[TT_SIZE];
 
 bool probeTT(Key key, int depth, int alpha, int beta, int& score);
