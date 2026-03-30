@@ -58,7 +58,6 @@ namespace zobrist {
 }
 
 Board::Board(std::string fen) {
-    magic::initMagicTables();
     zobrist::initZobrist();
     std::istringstream ss(fen);
     std::string placement, activeColor, castling, enPassantStr;
