@@ -532,29 +532,15 @@ void generatePawnMoves(const Board& board, MoveList& moves) {
 
 void generateKnightMoves(const Board& board, MoveList& moves) {
     int color = board.turn;
-    Bitboard empty = ~board.occupied;
     Bitboard allies = board.wbPieces[color];
-    Bitboard enemies = board.wbPieces[color ^ 1];
 
     Bitboard knights = board.bitboards[KNIGHT][color];
 
     while (knights) {
         int fromSquare = __builtin_ctzll(knights);
-        Bitboard squareMask = 1ULL << fromSquare;
         knights &= knights - 1;
 
-        Bitboard targets = 0;
-
-        targets |= (squareMask & NOT_FILE8) << 17;
-        targets |= (squareMask & NOT_FILE8 & NOT_FILE7) << 10;
-        targets |= (squareMask & NOT_FILE8 & NOT_FILE7) >> 6;
-        targets |= (squareMask & NOT_FILE8) >> 15;
-        targets |= (squareMask & NOT_FILE1) << 15;
-        targets |= (squareMask & NOT_FILE1 & NOT_FILE2) << 6;
-        targets |= (squareMask & NOT_FILE1 & NOT_FILE2) >> 10;
-        targets |= (squareMask & NOT_FILE1) >> 17;
-
-        targets &= ~allies;
+        Bitboard targets = magic::getKnightAttacks(fromSquare) & ~allies;
 
         while (targets) {
             int toSquare = __builtin_ctzll(targets);
@@ -566,146 +552,72 @@ void generateKnightMoves(const Board& board, MoveList& moves) {
 
 void generateBishopMoves(const Board& board, MoveList& moves) {
     int color = board.turn;
-    Bitboard empty = ~board.occupied;
     Bitboard allies = board.wbPieces[color];
-    Bitboard enemies = board.wbPieces[color ^ 1];
-
     Bitboard bishops = board.bitboards[BISHOP][color];
 
     while (bishops) {
         int fromSquare = __builtin_ctzll(bishops);
-        Bitboard squareMask = 1ULL << fromSquare;
         bishops &= bishops - 1;
 
-        for (int d = 0; d < 4; d++) { // up-right, up-left, down-right, down-left
-            int direction = BISHOP_DIRECTIONS[d];
-            int square = fromSquare;
-            while (true) {
-                int square_previous = square;
-                square += direction;
-                if (square < 0 || square > 63) { // out of board
-                    break;
-                }
-                if (abs((square % 8) - (square_previous % 8)) != 1) {
-                    break;
-                }
-                Bitboard target = 1ULL << square;
-                if (target & allies) {
-                    break;
-                }
-                if (target & enemies) {
-                    moves.addMove(fromSquare, square, NORMAL, 0);
-                    break;
-                }
-                moves.addMove(fromSquare, square, NORMAL, 0);
-            }
+        Bitboard attacks = magic::getBishopAttacks(fromSquare, board.occupied) & ~allies;
+
+        while (attacks) {
+            int toSquare = __builtin_ctzll(attacks);
+            moves.addMove(fromSquare, toSquare, NORMAL, 0);
+            attacks &= attacks - 1;
         }
     }
 }
 
 void generateRookMoves(const Board& board, MoveList& moves) {
     int color = board.turn;
-    Bitboard empty = ~board.occupied;
     Bitboard allies = board.wbPieces[color];
-    Bitboard enemies = board.wbPieces[color ^ 1];
-
     Bitboard rooks = board.bitboards[ROOK][color];
 
     while (rooks) {
         int fromSquare = __builtin_ctzll(rooks);
-        Bitboard squareMask = 1ULL << fromSquare;
         rooks &= rooks - 1;
 
-        for (int d = 0; d < 4; d++) { // up, down, right, left
-            int direction = ROOK_DIRECTIONS[d];
-            int square = fromSquare;
-            while (true) {
-                int square_previous = square;
-                square += direction;
-                if (square < 0 || square > 63) { // out of board
-                    break;
-                }
-                if (abs(direction) == 1 && square / 8 != square_previous / 8) {
-                    break;
-                }
+        Bitboard attacks = magic::getRookAttacks(fromSquare, board.occupied) & ~allies;
 
-                Bitboard target = 1ULL << square;
-                if (target & allies) {
-                    break;
-                }
-                if (target & enemies) {
-                    moves.addMove(fromSquare, square, NORMAL, 0);
-                    break;
-                }
-                moves.addMove(fromSquare, square, NORMAL, 0);
-            }
+        while (attacks) {
+            int toSquare = __builtin_ctzll(attacks);
+            moves.addMove(fromSquare, toSquare, NORMAL, 0);
+            attacks &= attacks - 1;
         }
     }
 }
 
 void generateQueenMoves(const Board& board, MoveList& moves) {
     int color = board.turn;
-    Bitboard empty = ~board.occupied;
     Bitboard allies = board.wbPieces[color];
-    Bitboard enemies = board.wbPieces[color ^ 1];
 
     Bitboard queens = board.bitboards[QUEEN][color];
 
     while (queens) {
         int fromSquare = __builtin_ctzll(queens);
-        Bitboard squareMask = 1ULL << fromSquare;
         queens &= queens - 1;
 
-        for (int d = 0; d < 8; d++) { // up, down, right, left then diagonals
-            int direction = QUEEN_DIRECTIONS[d];
-            int square = fromSquare;
-            while (true) {
-                int square_previous = square;
-                square += direction;
-                if (square < 0 || square > 63) { // out of board
-                    break;
-                }
-                if (abs((square % 8) - (square_previous % 8)) > 1) {
-                    break;
-                }
-                
-                Bitboard target = 1ULL << square;
-                if (target & allies) {
-                    break;
-                }
-                if (target & enemies) {
-                    moves.addMove(fromSquare, square, NORMAL, 0);
-                    break;
-                }
-                moves.addMove(fromSquare, square, NORMAL, 0);
-            }
+        Bitboard attacks = magic::getQueenAttacks(fromSquare, board.occupied) & ~allies;
+
+        while (attacks) {
+            int toSquare = __builtin_ctzll(attacks);
+            moves.addMove(fromSquare, toSquare, NORMAL, 0);
+            attacks &= attacks - 1;
         }
     }
 }
+
 void generateKingMoves(const Board& board, MoveList& moves) {
     int color = board.turn;
-    Bitboard empty = ~board.occupied;
     Bitboard allies = board.wbPieces[color];
-    Bitboard enemies = board.wbPieces[color ^ 1];
     Bitboard occupied = board.occupied;
 
     Bitboard king = board.bitboards[KING][color];
+    int fromSquare = __builtin_ctzll(king);
 
     // normal move
-    Bitboard targets = 0;
-
-    targets |= (king & NOT_FILE8) << 9; // up-right
-    targets |= king << 8;               // up
-    targets |= (king & NOT_FILE1) << 7; // up-left
-    targets |= (king & NOT_FILE8) << 1; // right
-    targets |= (king & NOT_FILE1) >> 1; // left
-    targets |= (king & NOT_FILE8) >> 7; // down-right
-    targets |= king >> 8;               // down
-    targets |= (king & NOT_FILE1) >> 9; // down-left
-
-    targets &= ~allies;
-
-    int fromSquare = __builtin_ctzll(king);
+    Bitboard targets = magic::getKingAttacks(fromSquare) & ~allies;
 
     while (targets) {
         int toSquare = __builtin_ctzll(targets);
@@ -714,21 +626,18 @@ void generateKingMoves(const Board& board, MoveList& moves) {
     }
 
     // castling
-
     if (color == WHITE && board.kingCastle[WHITE]) {
         if (!(occupied & ((1ULL << 5) | (1ULL << 6)))) {
-            if (!board.isSquareAttacked(4, color ^ 1) &&
-                !board.isSquareAttacked(5, color ^ 1) &&
-                !board.isSquareAttacked(6, color ^ 1)) {
+            if (!board.isSquareAttacked(4, color ^ 1) 
+            && !board.isSquareAttacked(5, color ^ 1)) {
                 moves.addMove(4, 6, CASTLING, 0);
             }
         }
     }
     if (color == WHITE && board.queenCastle[WHITE]) {
         if (!(occupied & ((1ULL << 1) | (1ULL << 2) | (1ULL << 3)))) {
-            if (!board.isSquareAttacked(4, color ^ 1) &&
-                !board.isSquareAttacked(3, color ^ 1) &&
-                !board.isSquareAttacked(2, color ^ 1)) {
+            if (!board.isSquareAttacked(4, color ^ 1) 
+                && !board.isSquareAttacked(3, color ^ 1)) {
                 moves.addMove(4, 2, CASTLING, 0);
             }
         }
@@ -736,20 +645,229 @@ void generateKingMoves(const Board& board, MoveList& moves) {
 
     if (color == BLACK && board.kingCastle[BLACK]) {
         if (!(occupied & ((1ULL << 61) | (1ULL << 62)))) {
-            if (!board.isSquareAttacked(60, color ^ 1) &&
-                !board.isSquareAttacked(61, color ^ 1) &&
-                !board.isSquareAttacked(62, color ^ 1)) {
+            if (!board.isSquareAttacked(60, color ^ 1) 
+                &&!board.isSquareAttacked(61, color ^ 1)) {
                 moves.addMove(60, 62, CASTLING, 0);
             }
         }
     }
     if (color == BLACK && board.queenCastle[BLACK]) {
         if (!(occupied & ((1ULL << 57) | (1ULL << 58) | (1ULL << 59)))) {
-            if (!board.isSquareAttacked(60, color ^ 1) &&
-                !board.isSquareAttacked(59, color ^ 1) &&
-                !board.isSquareAttacked(58, color ^ 1)) {
+            if (!board.isSquareAttacked(60, color ^ 1) 
+                && !board.isSquareAttacked(59, color ^ 1)) {
                 moves.addMove(60, 58, CASTLING, 0);
             }
         }
     }   
+}
+
+MoveList generateTacticalMoves(const Board& board) {
+    MoveList moves;
+
+    generateTacticalPawnMoves(board, moves);
+    generateTacticalKnightMoves(board, moves);
+    generateTacticalBishopMoves(board, moves);
+    generateTacticalRookMoves(board, moves);
+    generateTacticalQueenMoves(board, moves);
+    generateTacticalKingMoves(board, moves);
+
+    return moves;
+}
+void generateTacticalPawnMoves(const Board& board, MoveList& moves) {
+    int color = board.turn;
+    Bitboard empty = ~board.occupied;
+    Bitboard enemies = board.wbPieces[color ^ 1];
+
+    // captures
+    if (color == WHITE) {
+        Bitboard targets = ((board.bitboards[PAWN][color] & NOT_FILE8) << 9) & enemies & NOT_RANK8;
+        while (targets) {
+            int toSquare = __builtin_ctzll(targets);
+            moves.addMove(toSquare - 9, toSquare, NORMAL);
+            targets &= targets - 1;
+        }
+        targets = ((board.bitboards[PAWN][color] & NOT_FILE1) << 7) & enemies & NOT_RANK8;
+        while (targets) {
+            int toSquare = __builtin_ctzll(targets);
+            moves.addMove(toSquare - 7, toSquare, NORMAL);
+            targets &= targets - 1;
+        }
+    }
+    if (color == BLACK) {
+        Bitboard targets = ((board.bitboards[PAWN][color] & NOT_FILE8) >> 7) & enemies & NOT_RANK1;
+        while (targets) {
+            int toSquare = __builtin_ctzll(targets);
+            moves.addMove(toSquare + 7, toSquare, NORMAL);
+            targets &= targets - 1;
+        }
+        targets = ((board.bitboards[PAWN][color] & NOT_FILE1) >> 9) & enemies & NOT_RANK1;
+        while (targets) {
+            int toSquare = __builtin_ctzll(targets);
+            moves.addMove(toSquare + 9, toSquare, NORMAL);
+            targets &= targets - 1;
+        }
+    }
+
+    // en passant
+    if (board.enPassant) {
+        Bitboard ep = 1ULL << board.enPassantSquare;
+        Bitboard attackers = 0;
+        if (color == WHITE)
+            attackers = (((ep & NOT_FILE1) >> 9) | ((ep & NOT_FILE8) >> 7)) & board.bitboards[PAWN][color];
+        if (color == BLACK)
+            attackers = (((ep & NOT_FILE8) << 9) | ((ep & NOT_FILE1) << 7)) & board.bitboards[PAWN][color];
+        while (attackers) {
+            int fromSquare = __builtin_ctzll(attackers);
+            moves.addMove(fromSquare, board.enPassantSquare, EN_PASSANT, 0);
+            attackers &= attackers - 1;
+        }
+    }
+
+    // no caputre promotions
+    if (color == WHITE) {
+        Bitboard targets = (board.bitboards[PAWN][color] << 8) & empty & RANK8;
+        while (targets) {
+            int toSquare = __builtin_ctzll(targets);
+            moves.addMove(toSquare - 8, toSquare, PROMOTION, QUEEN);
+            moves.addMove(toSquare - 8, toSquare, PROMOTION, ROOK);
+            moves.addMove(toSquare - 8, toSquare, PROMOTION, BISHOP);
+            moves.addMove(toSquare - 8, toSquare, PROMOTION, KNIGHT);
+            targets &= targets - 1;
+        }
+    }
+    if (color == BLACK) {
+        Bitboard targets = (board.bitboards[PAWN][color] >> 8) & empty & RANK1;
+        while (targets) {
+            int toSquare = __builtin_ctzll(targets);
+            moves.addMove(toSquare + 8, toSquare, PROMOTION, QUEEN);
+            moves.addMove(toSquare + 8, toSquare, PROMOTION, ROOK);
+            moves.addMove(toSquare + 8, toSquare, PROMOTION, BISHOP);
+            moves.addMove(toSquare + 8, toSquare, PROMOTION, KNIGHT);
+            targets &= targets - 1;
+        }
+    }
+
+    // capture promotions
+    if (color == WHITE) {
+        Bitboard targets = ((board.bitboards[PAWN][color] & NOT_FILE8) << 9) & enemies & RANK8;
+        while (targets) {
+            int toSquare = __builtin_ctzll(targets);
+            moves.addMove(toSquare - 9, toSquare, PROMOTION, QUEEN);
+            moves.addMove(toSquare - 9, toSquare, PROMOTION, ROOK);
+            moves.addMove(toSquare - 9, toSquare, PROMOTION, BISHOP);
+            moves.addMove(toSquare - 9, toSquare, PROMOTION, KNIGHT);
+            targets &= targets - 1;
+        }
+        targets = ((board.bitboards[PAWN][color] & NOT_FILE1) << 7) & enemies & RANK8;
+        while (targets) {
+            int toSquare = __builtin_ctzll(targets);
+            moves.addMove(toSquare - 7, toSquare, PROMOTION, QUEEN);
+            moves.addMove(toSquare - 7, toSquare, PROMOTION, ROOK);
+            moves.addMove(toSquare - 7, toSquare, PROMOTION, BISHOP);
+            moves.addMove(toSquare - 7, toSquare, PROMOTION, KNIGHT);
+            targets &= targets - 1;
+        }
+    }
+    if (color == BLACK) {
+        Bitboard targets = ((board.bitboards[PAWN][color] & NOT_FILE8) >> 7) & enemies & RANK1;
+        while (targets) {
+            int toSquare = __builtin_ctzll(targets);
+            moves.addMove(toSquare + 7, toSquare, PROMOTION, QUEEN);
+            moves.addMove(toSquare + 7, toSquare, PROMOTION, ROOK);
+            moves.addMove(toSquare + 7, toSquare, PROMOTION, BISHOP);
+            moves.addMove(toSquare + 7, toSquare, PROMOTION, KNIGHT);
+            targets &= targets - 1;
+        }
+        targets = ((board.bitboards[PAWN][color] & NOT_FILE1) >> 9) & enemies & RANK1;
+        while (targets) {
+            int toSquare = __builtin_ctzll(targets);
+            moves.addMove(toSquare + 9, toSquare, PROMOTION, QUEEN);
+            moves.addMove(toSquare + 9, toSquare, PROMOTION, ROOK);
+            moves.addMove(toSquare + 9, toSquare, PROMOTION, BISHOP);
+            moves.addMove(toSquare + 9, toSquare, PROMOTION, KNIGHT);
+            targets &= targets - 1;
+        }
+    }
+}
+
+void generateTacticalKnightMoves(const Board& board, MoveList& moves) {
+    int color = board.turn;
+    Bitboard enemies = board.wbPieces[color ^ 1];
+    Bitboard knights = board.bitboards[KNIGHT][color];
+
+    while (knights) {
+        int fromSquare = __builtin_ctzll(knights);
+        knights &= knights - 1;
+        Bitboard targets = magic::getKnightAttacks(fromSquare) & enemies;
+        while (targets) {
+            int toSquare = __builtin_ctzll(targets);
+            moves.addMove(fromSquare, toSquare, NORMAL, 0);
+            targets &= targets - 1;
+        }
+    }
+}
+
+void generateTacticalBishopMoves(const Board& board, MoveList& moves) {
+    int color = board.turn;
+    Bitboard enemies = board.wbPieces[color ^ 1];
+    Bitboard bishops = board.bitboards[BISHOP][color];
+
+    while (bishops) {
+        int fromSquare = __builtin_ctzll(bishops);
+        bishops &= bishops - 1;
+        Bitboard attacks = magic::getBishopAttacks(fromSquare, board.occupied) & enemies;
+        while (attacks) {
+            int toSquare = __builtin_ctzll(attacks);
+            moves.addMove(fromSquare, toSquare, NORMAL, 0);
+            attacks &= attacks - 1;
+        }
+    }
+}
+
+void generateTacticalRookMoves(const Board& board, MoveList& moves) {
+    int color = board.turn;
+    Bitboard enemies = board.wbPieces[color ^ 1];
+    Bitboard rooks = board.bitboards[ROOK][color];
+
+    while (rooks) {
+        int fromSquare = __builtin_ctzll(rooks);
+        rooks &= rooks - 1;
+        Bitboard attacks = magic::getRookAttacks(fromSquare, board.occupied) & enemies;
+        while (attacks) {
+            int toSquare = __builtin_ctzll(attacks);
+            moves.addMove(fromSquare, toSquare, NORMAL, 0);
+            attacks &= attacks - 1;
+        }
+    }
+}
+
+void generateTacticalQueenMoves(const Board& board, MoveList& moves) {
+    int color = board.turn;
+    Bitboard enemies = board.wbPieces[color ^ 1];
+    Bitboard queens = board.bitboards[QUEEN][color];
+
+    while (queens) {
+        int fromSquare = __builtin_ctzll(queens);
+        queens &= queens - 1;
+        Bitboard attacks = magic::getQueenAttacks(fromSquare, board.occupied) & enemies;
+        while (attacks) {
+            int toSquare = __builtin_ctzll(attacks);
+            moves.addMove(fromSquare, toSquare, NORMAL, 0);
+            attacks &= attacks - 1;
+        }
+    }
+}
+
+void generateTacticalKingMoves(const Board& board, MoveList& moves) {
+    int color = board.turn;
+    Bitboard enemies = board.wbPieces[color ^ 1];
+    Bitboard king = board.bitboards[KING][color];
+    int fromSquare = __builtin_ctzll(king);
+
+    Bitboard targets = magic::getKingAttacks(fromSquare) & enemies;
+    while (targets) {
+        int toSquare = __builtin_ctzll(targets);
+        moves.addMove(fromSquare, toSquare, NORMAL, 0);
+        targets &= targets - 1;
+    }
 }

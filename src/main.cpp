@@ -1,23 +1,21 @@
-#include<iostream>
-#include<vector>
+#include <iostream>
+#include <chrono>
 
 #include "board.h"
 #include "moves.h"
 #include "evaluate.h"
 #include "constants.h"
 #include "search.h"
+#include "magic.h"
 
 int main() {
-    std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    Board board = Board(fen);
-    board.display();
-    
+    //std::string fen = "rnbqkbnr/pppppsppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    //Board board(fen);
+    //board.display();
+    auto start = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
+    magic::initMagicTables();
 
-    std::vector<std::vector<int>> moves = generateMoves(board);
-    std::cout << moves.size() << " moves in total\n";
-    for (auto move : moves) {
-        //std::cout << move[0] << " " << move[1] << " " << move[2] << " " << move[3] << std::endl;
-    }
-
-    std::cout << "Finished to run" << std::endl;
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "Magic numbers found in " << elapsed.count() << "s\n";
 }

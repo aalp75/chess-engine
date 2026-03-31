@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <algorithm>
 
 #include "constants.h"
 
@@ -25,10 +26,22 @@ inline int movePromo(Move move) {
 }
 
 struct MoveList {
-    Move moves[256] = {};
+    Move moves[256];
+    int scores[256];
     int count = 0;
 
     void addMove(int from, int to, int type = 0, int promo = 0) {
         moves[count++] = encodeMove(from, to, type, promo);
     }
 };
+
+inline void pickBest(MoveList& moves, int startIndex) {
+    int bestIndex = startIndex;
+    for (int i = startIndex + 1; i < moves.count; i++) {
+        if (moves.scores[i] > moves.scores[bestIndex]) {
+            bestIndex = i;
+        }
+    }
+    std::swap(moves.moves[startIndex], moves.moves[bestIndex]);
+    std::swap(moves.scores[startIndex], moves.scores[bestIndex]);
+}

@@ -1,7 +1,5 @@
 #pragma once
 
-# include<string_view>
-
 using Move = uint32_t;
 using Bitboard = uint64_t;
 using Key = uint64_t;
@@ -67,7 +65,7 @@ constexpr uint64_t NOT_FILE6 = ~FILE6;
 constexpr uint64_t NOT_FILE7 = ~FILE7;
 constexpr uint64_t NOT_FILE8 = ~FILE8;
 
-constexpr std::string_view FEN_START =
+constexpr const char* FEN_START =
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 

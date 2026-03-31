@@ -1,15 +1,13 @@
 .venv
 .vscode
 
-*.pyc
-
 logs/
 
-srcold/
-
 engines/
+engine_debug
+
+tests/perft_test*
 
 notes.txt
 notes2.txt
-
-.perft.pt*
+tests/perft

@@ -36,11 +36,15 @@ struct Board {
 
     // method
 
+    Board();
     Board(std::string fen);
+
+    void clear();
+    void loadFen(std::string fen);
 
     void display() const;
 
-    void nextTurn();
+    void switchTurn();
 
     bool isSquareAttacked(int square, int color) const;
     bool isInCheck(int color) const;

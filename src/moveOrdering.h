@@ -1,6 +1,6 @@
 #pragma once
 
-#include<vector>
+#include <vector>
 
 #include "board.h"
 #include "constants.h"

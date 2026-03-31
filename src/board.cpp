@@ -6,6 +6,9 @@
 #include "board.h"
 #include "magic.h"
 
+// TODO: separate the board constructor with the load fen 
+// that avoids to recompute zobrist and magic bitboard initialization
+
 namespace zobrist {
 
     uint64_t pieceKeys[PIECES][COLORS][SQUARES];
@@ -57,15 +60,33 @@ namespace zobrist {
     }
 }
 
-Board::Board(std::string fen) {
+Board::Board() {
     zobrist::initZobrist();
-    std::istringstream ss(fen);
-    std::string placement, activeColor, castling, enPassantStr;
-    ss >> placement >> activeColor >> castling >> enPassantStr;
+    magic::initMagicTables();
+}
 
+Board::Board(std::string fen) : Board() {
+    loadFen(fen);
+}
+
+void Board::clear() {
     for (int i = 0; i < SQUARES; i++) {
         pieceBoard[i] = NO_PIECE;
     }
+    for (int piece = 0; piece < PIECES; piece++) {
+        bitboards[piece][WHITE] = 0;
+        bitboards[piece][BLACK] = 0;
+    }
+
+    wbPieces[WHITE] = 0;
+    wbPieces[BLACK] = 0;
+}
+
+void Board::loadFen(std::string fen) {
+    clear();
+    std::istringstream ss(fen);
+    std::string placement, activeColor, castling, enPassantStr;
+    ss >> placement >> activeColor >> castling >> enPassantStr;
 
     // parse piece placement
     int rank = 7, file = 0;
@@ -160,7 +181,7 @@ void Board::display() const {
     std::cout << "  a b c d e f g h\n";
 }
 
-void Board::nextTurn() {
+void Board::switchTurn() {
     turn ^= 1;
 }
 
@@ -176,90 +197,27 @@ bool Board::isSquareAttacked(int square, int color) const {
     Bitboard king = bitboards[KING][color];
 
     // by a pawns
-    Bitboard attackers = 0;
-    if (color == WHITE) {
-        attackers = (((squareMask & NOT_FILE1) >> 9) | ((squareMask & NOT_FILE8) >> 7)) & pawns;
-    }
-    if (color == BLACK) {
-        attackers = (((squareMask & NOT_FILE8) << 9) | ((squareMask & NOT_FILE1) << 7)) & pawns;
-    }
-    if (attackers) {
+    if (magic::getPawnAttacks(square, enemyColor) & pawns) {
         return true;
     }
 
     // knights
-    attackers |= (squareMask & NOT_FILE8)             << 17;
-    attackers |= (squareMask & NOT_FILE8 & NOT_FILE7) << 10;
-    attackers |= (squareMask & NOT_FILE8 & NOT_FILE7) >> 6;
-    attackers |= (squareMask & NOT_FILE8)             >> 15;
-    attackers |= (squareMask & NOT_FILE1)             << 15;
-    attackers |= (squareMask & NOT_FILE1 & NOT_FILE2) << 6;
-    attackers |= (squareMask & NOT_FILE1 & NOT_FILE2) >> 10;
-    attackers |= (squareMask & NOT_FILE1)             >> 17;
-    if (attackers & knights) {
+    if (magic::getKnightAttacks(square) & knights) {
         return true;
     }
 
     // diagonals (bishops & queens)
-    for (int direction : {9, 7, -7, -9}) {
-        int currentSquare = square;
-        while (true) {
-            int previousSquare = currentSquare;
-            currentSquare += direction;
-            // TODO: wrap in a function outOfBoard
-            if (currentSquare < 0 || currentSquare > 63) {
-                break;
-            }
-            if (std::abs(currentSquare % 8 - previousSquare % 8) != 1) {
-                break;
-            }
-            Bitboard target = 1ULL << currentSquare;
-            if (target & (bishops | queens)) {
-                return true;
-            }
-            if (target & occupied) {
-                break;
-            }
-        }
+    if (magic::getBishopAttacks(square, occupied) & (bishops | queens)) {
+        return true;
     }
 
     // straight lines (rooks & queens)
-    for (int direction : {8, -8, 1, -1}) {
-        int currentSquare = square;
-        while (true) {
-            int previousSquare = currentSquare;
-            currentSquare += direction;
-            // TODO: wrap in a function outOfBoard
-            if (currentSquare < 0 || currentSquare > 63) {
-                break;
-            }
-            if (std::abs(direction) == 1 && currentSquare / 8 != previousSquare / 8) {
-                break;
-            }
-            Bitboard target = 1ULL << currentSquare;
-            if (target & (rooks | queens)) {
-                return true;
-            }
-            if (target & occupied) {
-                break;
-            }
-        }
+    if (magic::getRookAttacks(square, occupied) & (rooks | queens)) {
+        return true;
     }
 
     // king
-    attackers = 0;
-    attackers |= (squareMask & NOT_FILE8) << 9;
-    attackers |= squareMask               << 8;
-    attackers |= (squareMask & NOT_FILE1) << 7;
-    attackers |= (squareMask & NOT_FILE8) << 1;
-    attackers |= (squareMask & NOT_FILE1) >> 1;
-    attackers |= (squareMask & NOT_FILE8) >> 7;
-    attackers |= squareMask               >> 8;
-    attackers |= (squareMask & NOT_FILE1) >> 9;
-
-    if (attackers & king) {
-        return true;
-    }
+    if (magic::getKingAttacks(square) & king) return true;
 
     // no pieces attack the square
     return false;

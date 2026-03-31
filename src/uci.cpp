@@ -19,6 +19,7 @@
 #include "constants.h"
 #include "moveList.h"
 #include "transpositionTable.h"
+#include "timeManager.h"
 
 /*
     TODO: Add a small array int[] infos that keeps all the important infos for debugging:
@@ -65,7 +66,7 @@ static void sendResults(const SearchResult& results) {
 
     logMsg("DEBUG  ", "Move #" + std::to_string(results.countMove));
     logMsg("DEBUG  ", "Score: " + std::to_string(results.score));
-    logMsg("DEBUG  ", "Depth: " + std::to_string(results.depth));
+    logMsg("DEBUG  ", "Depth: " + std::to_string(results.stats.depth));
     logMsg("DEBUG  ", "Nodes: " + formatNumber(results.stats.nodes));
     logMsg("DEBUG  ", "Q-Nodes: " + formatNumber(results.stats.qnodes));
     logMsg("DEBUG  ", "Search time: " + formatTime(results.ms));
@@ -159,7 +160,7 @@ void applyMoves(Board& board, const std::vector<std::string>& tokens) {
     }
 }
 
-void run(int initialDepth) {
+void run(int initialDepth, bool playSound) {
     const std::string logDir = "/home/antoine/Documents/github/chess-engine/logs";
     std::filesystem::create_directories(logDir);
     auto now = std::chrono::system_clock::now();
@@ -168,9 +169,16 @@ void run(int initialDepth) {
     logName << logDir << "/" << std::put_time(std::localtime(&t), "%Y%m%d_%H%M%S") << ".log";
     logFile.open(logName.str());
 
-    std::string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    Board board(startFen);
+    auto initStart = std::chrono::steady_clock::now();
+    Board board(FEN_START);
+    auto initEnd = std::chrono::steady_clock::now();
+    long long initMs = std::chrono::duration_cast<std::chrono::milliseconds>(initEnd - initStart).count();
+    logMsg("DEBUG  ", "Board initialized in " + formatTime(initMs));
+
     int countMove = 0;
+    int lastScore = 0;
+
+    TimeManager timeManager;
 
     std::string line;
     while (std::getline(std::cin, line)) {
@@ -197,15 +205,16 @@ void run(int initialDepth) {
         } 
         else if (tokens[0] == "ucinewgame") {
             // play a sound to notify a new game found on lichess
-            (void)system("paplay /usr/share/sounds/freedesktop/stereo/message.oga &");
-            board = Board(startFen);
+            if (playSound) {
+                [[maybe_unused]] int _ = system("paplay /usr/share/sounds/freedesktop/stereo/message.oga &");
+            }
+            board = Board(FEN_START);
             std::memset(tt, 0, sizeof(tt)); // clear transposition table
             countMove = 0;
-
         } 
         else if (tokens[0] == "position") {
             if (tokens.size() >= 2 && tokens[1] == "startpos") {
-                board = Board(startFen);
+                board.loadFen(FEN_START);
 
                 auto it = std::find(tokens.begin(), tokens.end(), "moves");
                 if (it != tokens.end()) {
@@ -225,7 +234,7 @@ void run(int initialDepth) {
                     fen += tokens[i];
                 }
 
-                board = Board(fen);
+                board.loadFen(fen);
 
                 if (it != tokens.end()) {
                     std::vector<std::string> moves(it + 1, tokens.end());
@@ -239,25 +248,37 @@ void run(int initialDepth) {
             auto itDepth = std::find(tokens.begin(), tokens.end(), "depth");
             if (itDepth != tokens.end() && itDepth + 1 != tokens.end()) {
                 depth = std::stoi(*(itDepth + 1));
+                timeManager.init(99999999, 0);
             } 
             else {
-                auto itMoveTime = std::find(tokens.begin(), tokens.end(), "movetime");
-                if (itMoveTime != tokens.end() && itMoveTime + 1 != tokens.end()) {
-                    int movetime = std::stoi(*(itMoveTime + 1));
-                    if (movetime < 3000) depth--;
-                }
+
+                long long remaining = 5000;
+                long long increment = 2;
 
                 std::string timeToken = (board.turn == WHITE) ? "wtime" : "btime";
+                std::string incToken  = (board.turn == WHITE) ? "winc" : "binc";
+
                 auto itTime = std::find(tokens.begin(), tokens.end(), timeToken);
-                if (itTime != tokens.end() && itTime + 1 != tokens.end()) {
-                    int remainingTime = std::stoi(*(itTime + 1));
-                    if (remainingTime < 60000) depth--;
+                if (itTime != tokens.end() && itTime + 1 != tokens.end())
+                    remaining = std::stoll(*(itTime + 1));
+
+                auto itInc = std::find(tokens.begin(), tokens.end(), incToken);
+                if (itInc != tokens.end() && itInc + 1 != tokens.end()) {
+                    increment = std::stoll(*(itInc + 1));
+                }
+
+                auto itMoveTime = std::find(tokens.begin(), tokens.end(), "movetime");
+                if (itMoveTime != tokens.end() && itMoveTime + 1 != tokens.end()) {
+                    timeManager.initMovetime(std::stoll(*(itMoveTime + 1)));
+                }
+                else {
+                    timeManager.init(remaining, increment);
                 }
             }
 
             auto searchStart = std::chrono::steady_clock::now();
             SearchStats stats;
-            Move move = findBestMove(board, depth, stats);
+            Move move = findBestMove(board, depth, timeManager, stats);
             countMove++;
             auto searchEnd = std::chrono::steady_clock::now();
             long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(searchEnd - searchStart).count();
@@ -266,18 +287,24 @@ void run(int initialDepth) {
             results.countMove = countMove;
             results.bestMove = move;
             results.score = stats.score;
-            results.depth = depth;
+            results.depth = stats.depth;
             results.ms = ms;
             results.stats = stats;
 
+            lastScore = stats.score;
             sendResults(results);
 
-        } 
+        }
         else if (tokens[0] == "stop") {
             // nothing to do
 
         } 
         else if (tokens[0] == "quit") {
+            if (countMove > 0) {
+                // this is not 100% accurate -> find a better way
+                std::string result = (lastScore > 500) ? "VICTORY" : (lastScore < -500) ? "LOSE" : "DRAW";
+                logMsg("DEBUG  ", "FINAL RESULT: " + result);
+            }
             break;
         }
 

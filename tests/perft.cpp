@@ -81,8 +81,6 @@ int perft(Board& board, int depth, int ply, StateInfo* states) {
 
 int main(int argc, char* argv[]) {
 
-    auto start = std::chrono::high_resolution_clock::now();
-
     int maxDepth = 5;
     if (argc > 1) {
         maxDepth = std::stoi(argv[1]);
@@ -97,9 +95,12 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    Board board;
     StateInfo states[256];
     int passed = 0;
     int failed = 0;
+
+    auto start = std::chrono::high_resolution_clock::now();
 
     std::string line;
 
@@ -113,7 +114,7 @@ int main(int argc, char* argv[]) {
         }
 
         std::cout << "Run test for fen " << fen << std::endl;
-        Board board(fen);
+        board.loadFen(fen);
         
         while (std::getline(ss, token, ';')) {
             if (token.size() < 3 || token[0] != 'D') continue;

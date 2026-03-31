@@ -12,6 +12,7 @@ g++ -std=c++23 -O3 -march=alderlake -mtune=alderlake -flto \
     "$DIR/src/uci.cpp" \
     "$DIR/src/transpositionTable.cpp" \
     "$DIR/src/magic.cpp" \
+     "$DIR/src/timeManager.cpp" \
     -o "$DIR/engines/engine"
 
 echo "Build successful: $DIR/engines/engine"
