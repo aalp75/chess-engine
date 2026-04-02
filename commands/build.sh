@@ -2,17 +2,10 @@
 set -e
 
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SRC_FILES=$(find "$DIR/src" -name "*.cpp")
 
 g++ -std=c++23 -O3 -march=alderlake -mtune=alderlake -flto \
-    "$DIR/src/run.cpp" \
-    "$DIR/src/board.cpp" \
-    "$DIR/src/moves.cpp" \
-    "$DIR/src/evaluate.cpp" \
-    "$DIR/src/search.cpp" \
-    "$DIR/src/uci.cpp" \
-    "$DIR/src/transpositionTable.cpp" \
-    "$DIR/src/magic.cpp" \
-     "$DIR/src/timeManager.cpp" \
+    $SRC_FILES \
     -o "$DIR/engines/engine"
 
 echo "Build successful: $DIR/engines/engine"

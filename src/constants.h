@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 using Bitboard = uint64_t;
 using Move     = uint32_t;
 using Key      = uint64_t;
@@ -29,9 +31,16 @@ enum Piece {
     PIECE_NB = 16
 };
 
-constexpr int KING_END = 7;
+enum CastlingRights : uint8_t {
+    WHITE_OO  = 1 << 0,  // 0001
+    WHITE_OOO = 1 << 1,  // 0010
+    BLACK_OO  = 1 << 2,  // 0100
+    BLACK_OOO = 1 << 3   // 1000
+};
 
 enum MoveType { NORMAL, EN_PASSANT, CASTLING, PROMOTION };
+
+constexpr int CHECKMATE_SCORE = 100'000;
 
 constexpr int BISHOP_DIRECTIONS[4] = {9, 7, -7, -9};
 constexpr int ROOK_DIRECTIONS[4] = {8, 1, -1, -8};

@@ -35,10 +35,9 @@ Move findBestMove(Board& board, int maxDepth, TimeManager& timeManager, SearchSt
 
         MoveList moves = generateMoves(board);
 
-        Key key = board.key;
         Move ttMove = 0;
-        TTEntry& entry = tt[key & (TT_SIZE - 1)];
-        if (entry.key == key) {
+        TTEntry& entry = tt[board.key & (TT_SIZE - 1)];
+        if (entry.key == board.key) {
             ttMove = entry.bestMove;
         }
 
@@ -67,18 +66,19 @@ Move findBestMove(Board& board, int maxDepth, TimeManager& timeManager, SearchSt
             pickBest(moves, i);
             Move move = moves.moves[i];
             doMove(board, move, states, ply);
-            if ((states[ply].capturedPiece & 7) != KING && !board.isInCheck(board.turn ^ 1)) {
+            if (!board.isInCheck(board.side ^ 1)) {
                 int score = -negamax(
                     board,
                     states,
                     depth - 1,
                     -INF,
-                    -currentBestScore,
+                    INF,
                     ply + 1,
                     timeManager,
                     stats
                 );
                 if (score > currentBestScore) {
+                    // we found a new best move
                     currentBestScore = score;
                     currentBestMove = move;
                 }
@@ -107,12 +107,13 @@ int negamax(Board& board,
             TimeManager& timeManager,
             SearchStats& stats) 
 {
+    
     stats.nodes++;
 
     if ((stats.nodes & 4095) == 0 && timeManager.isExpired()) return 0;
 
     if (depth == 0) {
-        return quiescenceSearch(board, states, alpha, beta, ply + 1, 0, timeManager, stats);
+        return quiescenceSearch(board, states, alpha, beta, ply, 0, timeManager, stats);
     }
 
     Key key = board.key;
@@ -122,7 +123,8 @@ int negamax(Board& board,
         return ttScore;
     }
 
-    if (depth >= 3 && !board.isInCheck(board.turn)) {
+    // null pruning
+    if (depth >= 3 && !board.isInCheck(board.side)) {
 
         doNullMove(board, states, ply);
         int nullScore = -negamax(
@@ -132,7 +134,8 @@ int negamax(Board& board,
             -beta, 
             -beta + 1, 
             ply + 1, 
-            timeManager, stats
+            timeManager, 
+            stats
         );
         undoNullMove(board, states, ply);
 
@@ -172,7 +175,7 @@ int negamax(Board& board,
         pickBest(moves, i);
         Move move = moves.moves[i];
         doMove(board, move, states, ply);
-        if ((states[ply].capturedPiece & 7) == KING || board.isInCheck(board.turn ^ 1)) {
+        if ((states[ply].capturedPiece & 7) == KING || board.isInCheck(board.side ^ 1)) {
             undoMove(board, states, ply);
             continue;
         }
@@ -203,7 +206,7 @@ int negamax(Board& board,
     }
 
     if (legal == 0) { // checkmate or stalemate
-        int score = board.isInCheck(board.turn) ? -(INF - ply) : 0;
+        int score = board.isInCheck(board.side) ? -(INF - ply) : 0;
         storeTT(key, depth, ply, score, TT_EXACT, 0);
         return score;
     }
@@ -243,7 +246,7 @@ int quiescenceSearch(Board& board, StateInfo* states, int alpha, int beta, int p
         Move move = moves.moves[i];
         
         doMove(board, move, states, ply);
-        if ((states[ply].capturedPiece & 7) != KING && !board.isInCheck(board.turn ^ 1)) {
+        if ((states[ply].capturedPiece & 7) != KING && !board.isInCheck(board.side ^ 1)) {
             int score = -quiescenceSearch(board, states, -beta, -alpha, ply + 1, qdepth + 1, timeManager, stats);
             if (score >= beta) { 
                 undoMove(board, states, ply); 

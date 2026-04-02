@@ -30,7 +30,7 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
     int type       = moveType(move);
     int promoPiece = movePromo(move);
 
-    int color = board.turn;
+    int color = board.side;
     int enemyColor = color ^ 1;
 
     Piece piece         = board.squares[fromSquare];
@@ -43,18 +43,13 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
     newState.toSquare       = toSquare;
     newState.movedPiece     = piece;
     newState.capturedPiece  = captured;
-    newState.kingCastle[0]  = board.kingCastle[0]; 
-    newState.kingCastle[1]  = board.kingCastle[1];
-    newState.queenCastle[0] = board.queenCastle[0];
-    newState.queenCastle[1] = board.queenCastle[1];
+    newState.castlingRights = board.castlingRights;
     newState.type           = type;
     newState.epSquare       = board.epSquare;
     newState.promoPiece     = promoPiece;
     newState.key            = board.key;
 
-    int oldCastle = (board.kingCastle[WHITE]  ? 1 : 0) | (board.queenCastle[WHITE] ? 2 : 0)
-                  | (board.kingCastle[BLACK]  ? 4 : 0) | (board.queenCastle[BLACK] ? 8 : 0);
-
+    int oldCastle = board.castlingRights;
     zobrist::updateKeyCastle(board.key, oldCastle);
 
     if (board.epSquare != NO_SQUARE) {
@@ -71,7 +66,7 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
         zobrist::updateKeyPiece(board.key, captured, toSquare);
 
     // set en passant square for double pawn push
-    if (pieceType == PAWN && std::abs(toSquare - fromSquare) == 16) {
+    if (pieceType == PAWN && (toSquare ^ fromSquare) == 16) {
         board.epSquare = (fromSquare + toSquare) / 2;
         zobrist::updateKeyEp(board.key, board.epSquare);
     }
@@ -91,18 +86,10 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
     board.squares[toSquare]   = piece;
 
     // if a rook is captured remove castle
-    if (toSquare == 0) {
-        board.queenCastle[WHITE] = false;
-    }
-    if (toSquare == 7) {
-        board.kingCastle[WHITE] = false;
-    }
-    if (toSquare == 56) {
-        board.queenCastle[BLACK] = false;
-    }
-    if (toSquare == 63) {
-        board.kingCastle[BLACK] = false;
-    }
+    if      (toSquare == 0)  board.castlingRights &= ~WHITE_OOO;
+    else if (toSquare == 7)  board.castlingRights &= ~WHITE_OO;
+    else if (toSquare == 56) board.castlingRights &= ~BLACK_OOO;
+    else if (toSquare == 63) board.castlingRights &= ~BLACK_OO;
 
     // en passant
     if (type == EN_PASSANT) {
@@ -118,29 +105,14 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
     }
 
     // update castle if a king or a rook move
-    if (fromSquare == 4) {
-        board.kingCastle[WHITE] = false;
-        board.queenCastle[WHITE] = false;
-    }
-    if (fromSquare == 60) {
-        board.kingCastle[BLACK] = false;
-        board.queenCastle[BLACK] = false;
-    }
-    if (fromSquare == 0) {
-        board.queenCastle[WHITE] = false;
-    }
-    if (fromSquare == 7) {
-        board.kingCastle[WHITE] = false;
-    }
-    if (fromSquare == 56) {
-        board.queenCastle[BLACK] = false;
-    }
-    if (fromSquare == 63) {
-        board.kingCastle[BLACK] = false;
-    }
+    if      (fromSquare == 4)  board.castlingRights &= ~(WHITE_OO  | WHITE_OOO);
+    else if (fromSquare == 60) board.castlingRights &= ~(BLACK_OO  | BLACK_OOO);
+    else if (fromSquare == 0)  board.castlingRights &= ~WHITE_OOO;
+    else if (fromSquare == 7)  board.castlingRights &= ~WHITE_OO;
+    else if (fromSquare == 56) board.castlingRights &= ~BLACK_OOO;
+    else if (fromSquare == 63) board.castlingRights &= ~BLACK_OO;
 
-    int newCastle = (board.kingCastle[WHITE]  ? 1 : 0) | (board.queenCastle[WHITE] ? 2 : 0)
-                    | (board.kingCastle[BLACK]  ? 4 : 0) | (board.queenCastle[BLACK] ? 8 : 0);
+    int newCastle = board.castlingRights;
     zobrist::updateKeyCastle(board.key, newCastle);
 
     // promotion
@@ -196,7 +168,7 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
         }
     }
 
-    board.switchTurn();
+    board.switchSide();
     zobrist::updateKeySide(board.key);
 }
 
@@ -209,7 +181,7 @@ void undoMove(Board& board, StateInfo* states, int ply) {
     Piece piece         = Piece(state.movedPiece);
     PieceType pieceType = PieceType(piece & 7);
     Piece captured      = Piece(state.capturedPiece);
-    int color           = board.turn ^ 1;
+    Color color         = static_cast<Color>(board.side ^ 1);
     int enemyColor      = color ^ 1;
     int promoPiece      = state.promoPiece;
 
@@ -250,21 +222,24 @@ void undoMove(Board& board, StateInfo* states, int ply) {
             board.byColorBB[WHITE] |=  (1ULL << 7);
             board.squares[5] = NO_PIECE;
             board.squares[7] = W_ROOK;
-        } else if (toSquare == 2) {
+        } 
+        else if (toSquare == 2) {
             board.byTypeBB[ROOK]   &= ~(1ULL << 3);
             board.byTypeBB[ROOK]   |=  (1ULL << 0);
             board.byColorBB[WHITE] &= ~(1ULL << 3);
             board.byColorBB[WHITE] |=  (1ULL << 0);
             board.squares[3] = NO_PIECE;
             board.squares[0] = W_ROOK;
-        } else if (toSquare == 62) {
+        } 
+        else if (toSquare == 62) {
             board.byTypeBB[ROOK]   &= ~(1ULL << 61);
             board.byTypeBB[ROOK]   |=  (1ULL << 63);
             board.byColorBB[BLACK] &= ~(1ULL << 61);
             board.byColorBB[BLACK] |=  (1ULL << 63);
             board.squares[61] = NO_PIECE;
             board.squares[63] = B_ROOK;
-        } else if (toSquare == 58) {
+        } 
+        else if (toSquare == 58) {
             board.byTypeBB[ROOK]   &= ~(1ULL << 59);
             board.byTypeBB[ROOK]   |=  (1ULL << 56);
             board.byColorBB[BLACK] &= ~(1ULL << 59);
@@ -275,13 +250,10 @@ void undoMove(Board& board, StateInfo* states, int ply) {
     }
 
     // restore board state
-    board.kingCastle[0]  = state.kingCastle[0];
-    board.kingCastle[1]  = state.kingCastle[1];
-    board.queenCastle[0] = state.queenCastle[0];
-    board.queenCastle[1] = state.queenCastle[1];
+    board.castlingRights = state.castlingRights;
     board.epSquare       = state.epSquare;
     board.key            = state.key;
-    board.turn           = board.turn ^ 1;
+    board.side           = static_cast<Color>(board.side ^ 1);
 }
 
 void doNullMove(Board& board, StateInfo* states, int ply) {
@@ -295,14 +267,14 @@ void doNullMove(Board& board, StateInfo* states, int ply) {
 
     board.epSquare = NO_SQUARE;
     zobrist::updateKeySide(board.key);
-    board.switchTurn();
+    board.switchSide();
 }
 
 void undoNullMove(Board& board, StateInfo* states, int ply) {
     StateInfo& state = states[ply];
     board.key      = state.key;
     board.epSquare = state.epSquare;
-    board.turn     = board.turn ^ 1;
+    board.side     = static_cast<Color>(board.side ^ 1);
 }
 
 MoveList generateMoves(const Board& board) {
@@ -319,7 +291,7 @@ MoveList generateMoves(const Board& board) {
 }
 
 void generatePawnMoves(const Board& board, MoveList& moves) {
-    int color = board.turn;
+    int color = board.side;
     
     Bitboard empty = ~(board.byColorBB[WHITE] | board.byColorBB[BLACK]);
     Bitboard enemies = board.byColorBB[color ^ 1];
@@ -523,7 +495,7 @@ void generatePawnMoves(const Board& board, MoveList& moves) {
 }
 
 void generateKnightMoves(const Board& board, MoveList& moves) {
-    int color = board.turn;
+    int color = board.side;
     Bitboard allies = board.byColorBB[color];
     Bitboard knights = board.byTypeBB[KNIGHT] & board.byColorBB[color];
 
@@ -542,7 +514,7 @@ void generateKnightMoves(const Board& board, MoveList& moves) {
 }
 
 void generateBishopMoves(const Board& board, MoveList& moves) {
-    int color = board.turn;
+    int color = board.side;
     Bitboard allies = board.byColorBB[color];
     Bitboard bishops = board.byTypeBB[BISHOP] & board.byColorBB[color];
 
@@ -563,7 +535,7 @@ void generateBishopMoves(const Board& board, MoveList& moves) {
 }
 
 void generateRookMoves(const Board& board, MoveList& moves) {
-    int color = board.turn;
+    int color = board.side;
     Bitboard allies = board.byColorBB[color];
     Bitboard rooks = board.byTypeBB[ROOK] & board.byColorBB[color];
 
@@ -584,7 +556,7 @@ void generateRookMoves(const Board& board, MoveList& moves) {
 }
 
 void generateQueenMoves(const Board& board, MoveList& moves) {
-    int color = board.turn;
+    int color = board.side;
     Bitboard allies = board.byColorBB[color];
 
     Bitboard queens = board.byTypeBB[QUEEN] & board.byColorBB[color];
@@ -606,7 +578,7 @@ void generateQueenMoves(const Board& board, MoveList& moves) {
 }
 
 void generateKingMoves(const Board& board, MoveList& moves) {
-    int color = board.turn;
+    int color = board.side;
     Bitboard allies = board.byColorBB[color];
     Bitboard occupied = board.byColorBB[WHITE] | board.byColorBB[BLACK];
 
@@ -623,7 +595,7 @@ void generateKingMoves(const Board& board, MoveList& moves) {
     }
 
     // castling
-    if (color == WHITE && board.kingCastle[WHITE]) {
+    if (color == WHITE && board.castlingRights & WHITE_OO) {
         if (!(occupied & ((1ULL << 5) | (1ULL << 6)))) {
             if (!board.isSquareAttacked(4, color ^ 1) 
             && !board.isSquareAttacked(5, color ^ 1)) {
@@ -631,7 +603,7 @@ void generateKingMoves(const Board& board, MoveList& moves) {
             }
         }
     }
-    if (color == WHITE && board.queenCastle[WHITE]) {
+    if (color == WHITE && board.castlingRights & WHITE_OOO) {
         if (!(occupied & ((1ULL << 1) | (1ULL << 2) | (1ULL << 3)))) {
             if (!board.isSquareAttacked(4, color ^ 1) 
                 && !board.isSquareAttacked(3, color ^ 1)) {
@@ -640,7 +612,7 @@ void generateKingMoves(const Board& board, MoveList& moves) {
         }
     }
 
-    if (color == BLACK && board.kingCastle[BLACK]) {
+    if (color == BLACK && board.castlingRights & BLACK_OO) {
         if (!(occupied & ((1ULL << 61) | (1ULL << 62)))) {
             if (!board.isSquareAttacked(60, color ^ 1) 
                 &&!board.isSquareAttacked(61, color ^ 1)) {
@@ -648,7 +620,7 @@ void generateKingMoves(const Board& board, MoveList& moves) {
             }
         }
     }
-    if (color == BLACK && board.queenCastle[BLACK]) {
+    if (color == BLACK && board.castlingRights & BLACK_OOO) {
         if (!(occupied & ((1ULL << 57) | (1ULL << 58) | (1ULL << 59)))) {
             if (!board.isSquareAttacked(60, color ^ 1) 
                 && !board.isSquareAttacked(59, color ^ 1)) {
@@ -671,7 +643,7 @@ MoveList generateTacticalMoves(const Board& board) {
     return moves;
 }
 void generateTacticalPawnMoves(const Board& board, MoveList& moves) {
-    int color = board.turn;
+    int color = board.side;
     Bitboard empty = ~(board.byColorBB[WHITE] | board.byColorBB[BLACK]);
     Bitboard enemies = board.byColorBB[color ^ 1];
 
@@ -790,7 +762,7 @@ void generateTacticalPawnMoves(const Board& board, MoveList& moves) {
 }
 
 void generateTacticalKnightMoves(const Board& board, MoveList& moves) {
-    int color = board.turn;
+    int color = board.side;
     Bitboard enemies = board.byColorBB[color ^ 1];
     Bitboard knights = board.byTypeBB[KNIGHT] & board.byColorBB[color];
 
@@ -807,7 +779,7 @@ void generateTacticalKnightMoves(const Board& board, MoveList& moves) {
 }
 
 void generateTacticalBishopMoves(const Board& board, MoveList& moves) {
-    int color = board.turn;
+    int color = board.side;
     Bitboard enemies = board.byColorBB[color ^ 1];
     Bitboard bishops = board.byTypeBB[BISHOP] & board.byColorBB[color];
 
@@ -826,7 +798,7 @@ void generateTacticalBishopMoves(const Board& board, MoveList& moves) {
 }
 
 void generateTacticalRookMoves(const Board& board, MoveList& moves) {
-    int color = board.turn;
+    int color = board.side;
     Bitboard enemies = board.byColorBB[color ^ 1];
     Bitboard rooks = board.byTypeBB[ROOK] & board.byColorBB[color];
 
@@ -845,7 +817,7 @@ void generateTacticalRookMoves(const Board& board, MoveList& moves) {
 }
 
 void generateTacticalQueenMoves(const Board& board, MoveList& moves) {
-    int color = board.turn;
+    int color = board.side;
     Bitboard enemies = board.byColorBB[color ^ 1];
     Bitboard queens = board.byTypeBB[QUEEN] & board.byColorBB[color];
 
@@ -864,7 +836,7 @@ void generateTacticalQueenMoves(const Board& board, MoveList& moves) {
 }
 
 void generateTacticalKingMoves(const Board& board, MoveList& moves) {
-    int color = board.turn;
+    int color = board.side;
     Bitboard enemies = board.byColorBB[color ^ 1];
     Bitboard king = board.byTypeBB[KING] & board.byColorBB[color];
     int fromSquare = __builtin_ctzll(king);

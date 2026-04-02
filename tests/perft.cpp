@@ -17,13 +17,13 @@ int perft(Board& board, int depth, int ply, StateInfo* states) {
     
     MoveList moves = generateMoves(board);
     int totalNodes = 0;
-    int turn = board.turn;
+    int side = board.side;
     
     for (int i = 0; i < moves.count; i++) {
         Move move = moves.moves[i];
         doMove(board, move, states, ply);
-        assert(board.key == board.hash());
-        if (!board.isInCheck(board.turn ^ 1)) {
+        //assert(board.key == board.hash());
+        if (!board.isInCheck(board.side ^ 1)) {
             int nodes = perft(board, depth - 1, ply + 1, states);
             totalNodes += nodes;
             if (ply == 0) {

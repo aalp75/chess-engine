@@ -1,11 +1,11 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
-#include <random>
 #include <vector>
 
 #include "magic.h"
 #include "constants.h"
+#include "utils.h"
 
 Bitboard W_PAWN_ATTACKS[SQUARE_NB];
 Bitboard B_PAWN_ATTACKS[SQUARE_NB];
@@ -22,9 +22,7 @@ Bitboard ROOK_MAGIC[SQUARE_NB];
 int      ROOK_SHIFT[SQUARE_NB];
 Bitboard ROOK_ATTACKS[SQUARE_NB][4096];
 
-Bitboard KING_ATTACKS[SQUARE_NB];
-
-std::mt19937_64 rng(std::random_device{}());
+Bitboard KING_ATTACKS[SQUARE_NB];P
 
 // TO DO at some point precompute it and load it in a text file or something similar
 
@@ -122,14 +120,14 @@ bool testRookMagic(int square, Bitboard magic) {
 
 Bitboard findBishopMagic(int square) {
     while (true) {
-        Bitboard magic = rng() & rng() & rng();
+        Bitboard magic = random64() & random64() & random64();
         if (testBishopMagic(square, magic)) return magic;
     }
 }
 
 Bitboard findRookMagic(int square) {
     while (true) {
-        Bitboard magic = rng() & rng() & rng();
+        Bitboard magic = random64() & random64() & random64();
         if (testRookMagic(square, magic)) return magic;
     }
 }

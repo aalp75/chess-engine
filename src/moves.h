@@ -15,8 +15,7 @@ struct StateInfo {
 
     int promoPiece;
 
-    bool kingCastle[2];
-    bool queenCastle[2];
+    uint8_t castlingRights;
 
     int epSquare;
     int type;

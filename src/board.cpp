@@ -1,64 +1,17 @@
+#include <cctype>
 #include <iostream>
 #include <sstream>
-#include <cctype>
-#include <random>
+
 #include "board.h"
 #include "magic.h"
+#include "utils.h"
+#include "zobrist.h"
 
 // TODO: separate the board constructor with the load fen 
 // that avoids to recompute zobrist and magic bitboard initialization
 
-namespace zobrist {
-
-    Key pieceKeys[PIECE_NB][SQUARE_NB];
-    Key sideKey;
-    Key castleKeys[16];
-    Key epKeys[SQUARE_NB];
-
-    bool zobristInitialized = false;
-
-    void initZobrist() {
-        if (zobristInitialized) return;
-
-        std::mt19937_64 rng(57);
-
-        for (int piece = 0; piece < PIECE_NB; piece++) {
-            for (int square = 0; square < SQUARE_NB; square++) {
-                pieceKeys[piece][square] = rng();
-            }   
-        }
-
-        sideKey = rng();
-        for (int d = 0; d < 16; d++) {
-            castleKeys[d] = rng();
-        }
-
-        for (int square = 0; square < SQUARE_NB; square++) {
-            epKeys[square] = rng();
-        }
-
-        zobristInitialized = true;
-    }
-
-    void updateKeyPiece(Key& key, int piece, int square) {
-        key ^= pieceKeys[piece][square];
-    }
-
-    void updateKeySide(Key& key) {
-        key ^= sideKey;
-    }
-
-    void updateKeyCastle(Key& key, int castle) {
-        key ^= castleKeys[castle];
-    }
-
-    void updateKeyEp(Key& key, int square) {
-        key ^= epKeys[square];
-    }
-}
-
 Board::Board() {
-    zobrist::initZobrist();
+    zobrist::initialize();
     magic::initMagicTables();
     clear();
 }
@@ -79,14 +32,7 @@ void Board::clear() {
         byColorBB[color] = 0;
     }
 
-    turn = WHITE;
-    epSquare = NO_SQUARE;
-    
-    kingCastle[WHITE]  = true;
-    queenCastle[WHITE] = true;
-    kingCastle[BLACK]  = true;
-    queenCastle[BLACK] = true;
-
+    castlingRights = WHITE_OO | WHITE_OOO | BLACK_OO | BLACK_OOO;
     key = 0;
 }
 
@@ -169,14 +115,15 @@ void Board::loadFen(const std::string& fen) {
         file++;
     }
 
-    // turn
-    turn = (activeColor == "w") ? WHITE : BLACK;
+    // side
+    side = (activeColor == "w") ? WHITE : BLACK;
 
     // castling
-    kingCastle[WHITE]  = castling.find('K') != std::string::npos;
-    queenCastle[WHITE] = castling.find('Q') != std::string::npos;
-    kingCastle[BLACK]  = castling.find('k') != std::string::npos;
-    queenCastle[BLACK] = castling.find('q') != std::string::npos;
+    castlingRights = 0;
+    if (castling.find('K') != std::string::npos) castlingRights |= WHITE_OO;
+    if (castling.find('Q') != std::string::npos) castlingRights |= WHITE_OOO;
+    if (castling.find('k') != std::string::npos) castlingRights |= BLACK_OO;
+    if (castling.find('q') != std::string::npos) castlingRights |= BLACK_OOO;
 
     // en passant
     epSquare = NO_SQUARE;
@@ -211,8 +158,8 @@ void Board::display() const {
     std::cout << "  a b c d e f g h\n";
 }
 
-void Board::switchTurn() {
-    turn = turn ^ 1;
+void Board::switchSide() {
+    side = static_cast<Color>(side ^ 1);
 }
 
 bool Board::isSquareAttacked(int square, int color) const {
@@ -265,23 +212,17 @@ Key Board::hash() const {
     for (int square = 0; square < SQUARE_NB; square++) {
         int piece = squares[square];
         if (piece == NO_PIECE) continue;
-        key ^= zobrist::pieceKeys[piece][square];
+        zobrist::updateKeyPiece(key, piece, square);
     }
 
-    if (turn == BLACK) {
-        key ^= zobrist::sideKey;
+    if (side == BLACK) {
+        zobrist::updateKeySide(key);
     }
 
-    int castle = 0;
-    if (kingCastle[WHITE])  castle |= 1;
-    if (queenCastle[WHITE]) castle |= 2;
-    if (kingCastle[BLACK])  castle |= 4;
-    if (queenCastle[BLACK]) castle |= 8;
-
-    key ^= zobrist::castleKeys[castle];
+    zobrist::updateKeyCastle(key, castlingRights);
 
     if (epSquare != NO_SQUARE) {
-        key ^= zobrist::epKeys[epSquare];
+        zobrist::updateKeyEp(key, epSquare);
     }
 
     return key;

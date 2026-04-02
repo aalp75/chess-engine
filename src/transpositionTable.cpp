@@ -11,8 +11,8 @@ bool probeTT(Key key, int depth, int ply, int alpha, int beta, int& score) {
     if (entry.depth < depth) return false;
 
     score = entry.score;
-    if (score >  100000 - 100) score -= ply;
-    if (score < -100000 + 100) score += ply;
+    if (score >  100'000 - 100) score -= ply;
+    if (score < -100'000 + 100) score += ply;
 
     if (entry.flag == TT_EXACT) return true;
     if (entry.flag == TT_ALPHA && score <= alpha) return true;

@@ -60,22 +60,25 @@ static void sendResults(const SearchResult& results) {
         uci = moveToUci(results.bestMove);
     }
 
-    long long nps = (results.ms > 0) ? (results.stats.nodes * 1000 / results.ms) : 0;
+    long long totalNodes = results.stats.nodes + results.stats.qnodes;
 
-    logMsg("DEBUG  ", "Move #" + std::to_string(results.countMove));
-    logMsg("DEBUG  ", "Score: " + std::to_string(results.score));
-    logMsg("DEBUG  ", "Depth: " + std::to_string(results.stats.depth));
-    logMsg("DEBUG  ", "Nodes: " + formatNumber(results.stats.nodes));
-    logMsg("DEBUG  ", "Q-Nodes: " + formatNumber(results.stats.qnodes));
+    long long nps = (results.ms > 0) ? (totalNodes * 1000 / results.ms) : 0;
+
+    logMsg("DEBUG  ", "Move #"        + std::to_string(results.countMove));
+    logMsg("DEBUG  ", "Score: "       + std::to_string(results.score));
+    logMsg("DEBUG  ", "Depth: "       + std::to_string(results.stats.depth));
+    logMsg("DEBUG  ", "Total nodes: " + formatNumber(totalNodes));
+    logMsg("DEBUG  ", "Nodes: "       + formatNumber(results.stats.nodes));
+    logMsg("DEBUG  ", "Q-Nodes: "     + formatNumber(results.stats.qnodes));
     logMsg("DEBUG  ", "Search time: " + formatTime(results.ms));
-    logMsg("DEBUG  ", "NPS: "   + formatNumber(nps) + "/s");
-    logMsg("DEBUG  ", "TT Hit: " + formatNumber(results.stats.ttHits));
+    logMsg("DEBUG  ", "NPS: "         + formatNumber(nps) + "/s");
+    logMsg("DEBUG  ", "TT Hit: "      + formatNumber(results.stats.ttHits));
 
     std::string info = "info depth "  + std::to_string(results.depth)
-                        + " score cp " + std::to_string(results.score) 
-                        + " nodes "    + std::to_string(results.stats.nodes) 
-                        + " nps "      + std::to_string(nps) 
-                        + " time "     + std::to_string(results.ms) 
+                        + " score cp " + std::to_string(results.score)
+                        + " nodes "    + std::to_string(totalNodes)
+                        + " nps "      + std::to_string(nps)
+                        + " time "     + std::to_string(results.ms)
                         + " pv "       + uci;
                         
     send(info);
@@ -253,8 +256,8 @@ void run(int initialDepth, bool playSound) {
                 long long remaining = 5000;
                 long long increment = 2;
 
-                std::string timeToken = (board.turn == WHITE) ? "wtime" : "btime";
-                std::string incToken  = (board.turn == WHITE) ? "winc" : "binc";
+                std::string timeToken = (board.side == WHITE) ? "wtime" : "btime";
+                std::string incToken  = (board.side == WHITE) ? "winc" : "binc";
 
                 auto itTime = std::find(tokens.begin(), tokens.end(), timeToken);
                 if (itTime != tokens.end() && itTime + 1 != tokens.end())
@@ -274,7 +277,7 @@ void run(int initialDepth, bool playSound) {
                 }
             }
 
-            logMsg("DEBUG  ", "Turn before search: " + std::string(board.turn == 0 ? "WHITE" : "BLACK"));
+            logMsg("DEBUG  ", "Turn before search: " + std::string(board.side == 0 ? "WHITE" : "BLACK"));
 
             auto searchStart = std::chrono::steady_clock::now();
             SearchStats stats;

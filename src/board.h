@@ -24,11 +24,10 @@ struct Board {
     // for example if you want the SQUARE_NB occupied by the white knights you 
     // can do byTypeBB[KNIGHT] & byColorBB[WHITE]
 
-    int  turn = WHITE;
-    bool kingCastle[2];
-    bool queenCastle[2];
-    int  epSquare; // -1 if en passant is none
-    Key  key;
+    Color   side           = WHITE;
+    uint8_t castlingRights = WHITE_OO | WHITE_OOO | BLACK_OO | BLACK_OOO;
+    int     epSquare       = NO_SQUARE;
+    Key     key            = 0;
 
     // method
 
@@ -40,10 +39,14 @@ struct Board {
 
     void display() const;
 
-    void switchTurn();
+    void switchSide();
 
     bool isSquareAttacked(int square, int color) const;
     bool isInCheck(int color) const;
 
     Key hash() const; // Zobrist hash
+    
+    inline Color getSide() const {
+        return side;
+    }
 };
