@@ -22,7 +22,7 @@ int perft(Board& board, int depth, int ply, StateInfo* states) {
     for (int i = 0; i < moves.count; i++) {
         Move move = moves.moves[i];
         doMove(board, move, states, ply);
-        //assert(board.key == board.hash());
+        assert(board.key == board.hash());
         if (!board.isInCheck(board.turn ^ 1)) {
             int nodes = perft(board, depth - 1, ply + 1, states);
             totalNodes += nodes;
@@ -30,54 +30,11 @@ int perft(Board& board, int depth, int ply, StateInfo* states) {
                 //std::cout << move[0] << "->" << move[1] << " : " << nodes << std::endl;
             }
         }
-        undoMove(board, states, ply);   
+        undoMove(board, states, ply);
     }
 
     return totalNodes;
 }
-
-/*int main() {
-    std::string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    Board board(fen);
-    StateInfo states[256];
-    std::vector<int> expected = {1, 20, 400, 8902, 197281, 4865609, 119060324};
-
-    for (int depth = 0; depth <= 3; depth++) {
-        int nodes = perft(board, depth, 0, states);
-        std::cout.imbue(std::locale(""));
-        std::string verdict = (nodes == expected[depth]) ? "OK" : "FAILED";
-        std::cout << "Depth = " << depth << " Nodes = " << nodes;
-        std::cout <<" (Expected = " << expected[depth] << ") - " << verdict << std::endl;
-    }
-
-    fen = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-    board = Board(fen);
-
-    expected = {1, 48, 2039, 97862, 4085603, 193690690};
-
-    for (int depth = 0; depth <= 3; depth++) {
-        int nodes = perft(board, depth, 0, states);
-        std::cout.imbue(std::locale(""));
-        std::string verdict = (nodes == expected[depth]) ? "OK" : "FAILED";
-        std::cout << "Depth = " << depth << " Nodes = " << nodes;
-        std::cout <<" (Expected = " << expected[depth] << ") - " << verdict << std::endl;
-    }
-
-    fen = "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1";
-    board = Board(fen);
-
-    expected = {1, 24, 496, 9483, 182838, 3605103};
-
-    for (int depth = 0; depth <= 5; depth++) {
-        int nodes = perft(board, depth, 0, states);
-        std::cout.imbue(std::locale(""));
-        std::string verdict = (nodes == expected[depth]) ? "OK" : "FAILED";
-        std::cout << "Depth = " << depth << " Nodes = " << nodes;
-        std::cout <<" (Expected = " << expected[depth] << ") - " << verdict << std::endl;
-    }
-
-
-}*/
 
 int main(int argc, char* argv[]) {
 

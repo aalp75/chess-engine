@@ -18,8 +18,7 @@ struct StateInfo {
     bool kingCastle[2];
     bool queenCastle[2];
 
-    bool enPassant;
-    int enPassantSquare;
+    int epSquare;
     int type;
     int capturedSquare;
 

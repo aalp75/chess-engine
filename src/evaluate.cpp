@@ -5,6 +5,8 @@
 #include "constants.h"
 #include "pieceSquareTable.h"
 
+// TODO: improve the evaluation method
+
 int evaluate(const Board& board) {
     int score = 0;
 
@@ -13,15 +15,15 @@ int evaluate(const Board& board) {
     // end game is defined when the total material on the board is low (below a treshold)
 
     int material[2] = {
-        PIECE_VALUES[KNIGHT] * __builtin_popcountll(board.bitboards[KNIGHT][WHITE]) +
-        PIECE_VALUES[BISHOP] * __builtin_popcountll(board.bitboards[BISHOP][WHITE]) +
-        PIECE_VALUES[ROOK]   * __builtin_popcountll(board.bitboards[ROOK][WHITE])   +
-        PIECE_VALUES[QUEEN]  * __builtin_popcountll(board.bitboards[QUEEN][WHITE]),
+        PIECE_VALUES[KNIGHT] * __builtin_popcountll(board.byTypeBB[KNIGHT] & board.byColorBB[WHITE]) +
+        PIECE_VALUES[BISHOP] * __builtin_popcountll(board.byTypeBB[BISHOP] & board.byColorBB[WHITE]) +
+        PIECE_VALUES[ROOK]   * __builtin_popcountll(board.byTypeBB[ROOK]   & board.byColorBB[WHITE]) +
+        PIECE_VALUES[QUEEN]  * __builtin_popcountll(board.byTypeBB[QUEEN]  & board.byColorBB[WHITE]),
 
-        PIECE_VALUES[KNIGHT] * __builtin_popcountll(board.bitboards[KNIGHT][BLACK]) +
-        PIECE_VALUES[BISHOP] * __builtin_popcountll(board.bitboards[BISHOP][BLACK]) +
-        PIECE_VALUES[ROOK]   * __builtin_popcountll(board.bitboards[ROOK][BLACK])   +
-        PIECE_VALUES[QUEEN]  * __builtin_popcountll(board.bitboards[QUEEN][BLACK])
+        PIECE_VALUES[KNIGHT] * __builtin_popcountll(board.byTypeBB[KNIGHT] & board.byColorBB[BLACK]) +
+        PIECE_VALUES[BISHOP] * __builtin_popcountll(board.byTypeBB[BISHOP] & board.byColorBB[BLACK]) +
+        PIECE_VALUES[ROOK]   * __builtin_popcountll(board.byTypeBB[ROOK]   & board.byColorBB[BLACK]) +
+        PIECE_VALUES[QUEEN]  * __builtin_popcountll(board.byTypeBB[QUEEN]  & board.byColorBB[BLACK])
     };
 
     bool endGame = (material[WHITE] + material[BLACK]) < 1600;
@@ -33,7 +35,7 @@ int evaluate(const Board& board) {
             pst = PST[KING_END];
         }
 
-        uint64_t positions = board.bitboards[piece][WHITE];
+        uint64_t positions = board.byTypeBB[piece] & board.byColorBB[WHITE];
 
         while (positions) {
             int square = __builtin_ctzll(positions);
@@ -42,7 +44,7 @@ int evaluate(const Board& board) {
             positions &= positions - 1;
         }
 
-        positions = board.bitboards[piece][BLACK];
+        positions = board.byTypeBB[piece] & board.byColorBB[BLACK];
         while (positions) {
             int square = __builtin_ctzll(positions);
             score -= PIECE_VALUES[piece] + pst[square];

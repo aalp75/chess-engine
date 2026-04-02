@@ -22,5 +22,5 @@ struct TTEntry {
 constexpr int TT_SIZE = 1 << 23;
 extern TTEntry tt[TT_SIZE];
 
-bool probeTT(Key key, int depth, int alpha, int beta, int& score);
-void storeTT(Key key, int depth, int score, TTFlag flag, Move bestMove);
+bool probeTT(Key key, int depth, int ply, int alpha, int beta, int& score);
+void storeTT(Key key, int depth, int ply, int score, TTFlag flag, Move bestMove);

@@ -2,7 +2,6 @@
 #include <sstream>
 #include <cctype>
 #include <random>
-
 #include "board.h"
 #include "magic.h"
 
@@ -11,10 +10,10 @@
 
 namespace zobrist {
 
-    uint64_t pieceKeys[PIECES][COLORS][SQUARES];
-    uint64_t sideKey;
-    uint64_t castleKeys[16];
-    uint64_t enPassantKeys[SQUARES];
+    Key pieceKeys[PIECE_NB][SQUARE_NB];
+    Key sideKey;
+    Key castleKeys[16];
+    Key epKeys[SQUARE_NB];
 
     bool zobristInitialized = false;
 
@@ -23,12 +22,10 @@ namespace zobrist {
 
         std::mt19937_64 rng(57);
 
-        for (int piece = PAWN; piece <= KING; piece++) {
-            for (int color = 0; color < COLORS; color++) {
-                for (int square = 0; square < SQUARES; square++) {
-                    pieceKeys[piece][color][square] = rng();
-                }   
-            }
+        for (int piece = 0; piece < PIECE_NB; piece++) {
+            for (int square = 0; square < SQUARE_NB; square++) {
+                pieceKeys[piece][square] = rng();
+            }   
         }
 
         sideKey = rng();
@@ -36,18 +33,18 @@ namespace zobrist {
             castleKeys[d] = rng();
         }
 
-        for (int square = 0; square < SQUARES; square++) {
-            enPassantKeys[square] = rng();
+        for (int square = 0; square < SQUARE_NB; square++) {
+            epKeys[square] = rng();
         }
 
         zobristInitialized = true;
-}
-
-    void updateKeyPiece(Key& key, int piece, int color, int square) {
-        key ^= pieceKeys[piece][color][square];
     }
 
-    void updateKeyside(Key& key) {
+    void updateKeyPiece(Key& key, int piece, int square) {
+        key ^= pieceKeys[piece][square];
+    }
+
+    void updateKeySide(Key& key) {
         key ^= sideKey;
     }
 
@@ -55,38 +52,49 @@ namespace zobrist {
         key ^= castleKeys[castle];
     }
 
-    void updateKeyEnPassant(Key& key, int square) {
-        key ^= enPassantKeys[square];
+    void updateKeyEp(Key& key, int square) {
+        key ^= epKeys[square];
     }
 }
 
 Board::Board() {
     zobrist::initZobrist();
     magic::initMagicTables();
+    clear();
 }
 
-Board::Board(std::string fen) : Board() {
+Board::Board(const std::string& fen) : Board() {
     loadFen(fen);
 }
 
 void Board::clear() {
-    for (int i = 0; i < SQUARES; i++) {
-        pieceBoard[i] = NO_PIECE;
+    for (int i = 0; i < SQUARE_NB; i++) {
+        squares[i] = NO_PIECE;
     }
-    for (int piece = 0; piece < PIECES; piece++) {
-        bitboards[piece][WHITE] = 0;
-        bitboards[piece][BLACK] = 0;
+    for (int piece = 0; piece < PIECE_TYPE_NB; piece++) {
+        byTypeBB[piece] = 0;
     }
 
-    wbPieces[WHITE] = 0;
-    wbPieces[BLACK] = 0;
+    for (int color = 0; color < COLOR_NB; color++) {
+        byColorBB[color] = 0;
+    }
+
+    turn = WHITE;
+    epSquare = NO_SQUARE;
+    
+    kingCastle[WHITE]  = true;
+    queenCastle[WHITE] = true;
+    kingCastle[BLACK]  = true;
+    queenCastle[BLACK] = true;
+
+    key = 0;
 }
 
-void Board::loadFen(std::string fen) {
+void Board::loadFen(const std::string& fen) {
     clear();
     std::istringstream ss(fen);
-    std::string placement, activeColor, castling, enPassantStr;
-    ss >> placement >> activeColor >> castling >> enPassantStr;
+    std::string placement, activeColor, castling, epStr;
+    ss >> placement >> activeColor >> castling >> epStr;
 
     // parse piece placement
     int rank = 7, file = 0;
@@ -102,39 +110,64 @@ void Board::loadFen(std::string fen) {
         }
         int color = std::islower(c) ? BLACK : WHITE;
         Bitboard bit = 1ULL << (rank * 8 + file);
-        char lowCase = std::tolower(c);
-        int pieceType = NO_PIECE;
-        if (lowCase == 'p') {
-            bitboards[PAWN][color] |= bit;
+        PieceType pieceType = NO_PIECE_TYPE;
+        Piece piece = NO_PIECE;
+        if (c == 'P') {
             pieceType = PAWN;
+            piece = W_PAWN;
         }
-        if (lowCase == 'n') {
-            bitboards[KNIGHT][color] |= bit;
+        else if (c == 'N') {
             pieceType = KNIGHT;
+            piece = W_KNIGHT;
         }
-        if (lowCase == 'b') {
-            bitboards[BISHOP][color] |= bit;
+        else if (c == 'B') {
             pieceType = BISHOP;
+            piece = W_BISHOP;
         }
-        if (lowCase == 'r') {
-            bitboards[ROOK][color]   |= bit;
+        else if (c == 'R') {
             pieceType = ROOK;
+            piece = W_ROOK;
         }
-        if (lowCase == 'q') {
-            bitboards[QUEEN][color]  |= bit;
+        else if (c == 'Q') {
             pieceType = QUEEN;
+            piece = W_QUEEN;
         }
-        if (lowCase == 'k') {
-            bitboards[KING][color]   |= bit;
+        else if (c == 'K') {
             pieceType = KING;
+            piece = W_KING;
         }
-        pieceBoard[rank * 8 + file] = pieceType;
-        wbPieces[color] |= bit;
+        else if (c == 'p') {
+            pieceType = PAWN;
+            piece = B_PAWN;
+        }
+        else if (c == 'n') {
+            pieceType = KNIGHT;
+            piece = B_KNIGHT;
+        }
+        else if (c == 'b') {
+            pieceType = BISHOP;
+            piece = B_BISHOP;
+        }
+        else if (c == 'r') {
+            pieceType = ROOK;
+            piece = B_ROOK;
+        }
+        else if (c == 'q') {
+            pieceType = QUEEN;
+            piece = B_QUEEN;
+        }
+        else if (c == 'k') {
+            pieceType = KING;
+            piece = B_KING;
+        }
+
+        squares[rank * 8 + file] = piece;
+
+        byTypeBB[pieceType] |= bit;
+        byColorBB[color] |= bit;        
 
         file++;
     }
-
-    occupied = wbPieces[0] | wbPieces[1];
 
     // turn
     turn = (activeColor == "w") ? WHITE : BLACK;
@@ -146,34 +179,31 @@ void Board::loadFen(std::string fen) {
     queenCastle[BLACK] = castling.find('q') != std::string::npos;
 
     // en passant
-    enPassant = (!enPassantStr.empty() && enPassantStr != "-");
-    if (enPassant) {
-        int file = enPassantStr[0] - 'a';
-        int rank = enPassantStr[1] - '1';
-        enPassantSquare = rank * 8 + file;
+    epSquare = NO_SQUARE;
+    if (!epStr.empty() && epStr != "-") {
+        int file = epStr[0] - 'a';
+        int rank = epStr[1] - '1';
+        epSquare = rank * 8 + file;
     }
 
     key = hash();
 }
 
+// move this to cout overload
 void Board::display() const {
-    const char* symbols[2][7] = {
-        {".", "♙", "♘", "♗", "♖", "♕", "♔"},  // WHITE
-        {".", "♟", "♞", "♝", "♜", "♛", "♚"},  // BLACK
+    const char* symbols[PIECE_NB] = {
+        ".", 
+        "♙", "♘", "♗", "♖", "♕", "♔", // WHITE
+        ".", ".",
+        "♟", "♞", "♝", "♜", "♛", "♚", // BLACK
     };
 
     for (int rank = 7; rank >= 0; rank--) {
         std::cout << rank + 1 << " ";
         for (int file = 0; file < 8; file++) {
             int square = rank * 8 + file;
-            const char* symbol = ".";
-            for (int color = 0; color < 2; color++) {
-                for (int piece = PAWN; piece <= KING; piece++) {
-                    if (bitboards[piece][color] & (1LL << square)) {
-                        symbol = symbols[color][piece];
-                    }
-                }
-            }
+            int piece = squares[square];
+            const char* symbol = symbols[piece];
             std::cout << symbol << " ";
         }
         std::cout << "\n";
@@ -182,19 +212,20 @@ void Board::display() const {
 }
 
 void Board::switchTurn() {
-    turn ^= 1;
+    turn = turn ^ 1;
 }
 
 bool Board::isSquareAttacked(int square, int color) const {
     int enemyColor = color ^ 1;
-    Bitboard squareMask = 1ULL << square;
 
-    Bitboard pawns = bitboards[PAWN][color];
-    Bitboard knights = bitboards[KNIGHT][color];
-    Bitboard bishops = bitboards[BISHOP][color];
-    Bitboard rooks = bitboards[ROOK][color];
-    Bitboard queens = bitboards[QUEEN][color];
-    Bitboard king = bitboards[KING][color];
+    Bitboard occupied = byColorBB[WHITE] | byColorBB[BLACK];
+
+    Bitboard pawns   = byTypeBB[PAWN] & byColorBB[color];
+    Bitboard knights = byTypeBB[KNIGHT] & byColorBB[color];
+    Bitboard bishops = byTypeBB[BISHOP] & byColorBB[color];
+    Bitboard rooks   = byTypeBB[ROOK] & byColorBB[color];
+    Bitboard queens  = byTypeBB[QUEEN] & byColorBB[color];
+    Bitboard king    = byTypeBB[KING] & byColorBB[color];
 
     // by a pawns
     if (magic::getPawnAttacks(square, enemyColor) & pawns) {
@@ -224,22 +255,17 @@ bool Board::isSquareAttacked(int square, int color) const {
 };
 
 bool Board::isInCheck(int color) const {
-    int kingSquare = __builtin_ctzll(bitboards[KING][color]);
+    Bitboard king = byTypeBB[KING] & byColorBB[color];
+    int kingSquare = __builtin_ctzll(king);
     return isSquareAttacked(kingSquare, color ^ 1);
 }
 
 Key Board::hash() const {
     Key key = 0;
-    for (int square = 0; square < SQUARES; square++) {
-        int piece = pieceBoard[square];
+    for (int square = 0; square < SQUARE_NB; square++) {
+        int piece = squares[square];
         if (piece == NO_PIECE) continue;
-
-        int color = WHITE;
-        if (wbPieces[BLACK] & (1ULL << square)) {
-            color = BLACK;
-        }
-
-        key ^= zobrist::pieceKeys[piece][color][square];
+        key ^= zobrist::pieceKeys[piece][square];
     }
 
     if (turn == BLACK) {
@@ -254,8 +280,8 @@ Key Board::hash() const {
 
     key ^= zobrist::castleKeys[castle];
 
-    if (enPassant) {
-        key ^= zobrist::enPassantKeys[enPassantSquare];
+    if (epSquare != NO_SQUARE) {
+        key ^= zobrist::epKeys[epSquare];
     }
 
     return key;

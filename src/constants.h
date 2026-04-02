@@ -1,29 +1,37 @@
 #pragma once
 
-using Move = uint32_t;
 using Bitboard = uint64_t;
-using Key = uint64_t;
+using Move     = uint32_t;
+using Key      = uint64_t;
 
-constexpr int SQUARES = 64;
+constexpr int SQUARE_NB = 64;
 
-constexpr int RANKS = 8;
-constexpr int FILES = 8;
+constexpr int RANK_NB = 8;
+constexpr int FILE_NB = 8;
 
-constexpr int COLORS = 2;
+enum Color { 
+    WHITE, BLACK,
+    COLOR_NB = 2
+};
 
-constexpr int WHITE = 0;
-constexpr int BLACK = 1;
-constexpr int PIECES = 7;
+constexpr int NO_SQUARE = -1;
 
-// TODO: at some point at an enum PieceType and Piece where Piece incorporates the 
-// color as well, example W_PAWN, W_KNIGHT, ..., B_PAWN, ...
+enum PieceType {
+    NO_PIECE_TYPE = 0,
+    PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING,
+    PIECE_TYPE_NB = 7
+};
 
-
-enum Piece { NO_PIECE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING };
+enum Piece { 
+    NO_PIECE, 
+    W_PAWN = 1, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
+    B_PAWN = 9, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
+    PIECE_NB = 16
+};
 
 constexpr int KING_END = 7;
 
-enum MoveType {NORMAL, EN_PASSANT, CASTLING, PROMOTION};
+enum MoveType { NORMAL, EN_PASSANT, CASTLING, PROMOTION };
 
 constexpr int BISHOP_DIRECTIONS[4] = {9, 7, -7, -9};
 constexpr int ROOK_DIRECTIONS[4] = {8, 1, -1, -8};

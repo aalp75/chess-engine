@@ -6,41 +6,37 @@
 #include "constants.h"
 
 namespace zobrist {
-    void updateKeyPiece(Key& key, int piece, int color, int square);
-    void updateKeyside(Key& key);
+    void updateKeyPiece(Key& key, int piece, int square);
+    void updateKeySide(Key& key);
     void updateKeyCastle(Key& key, int castle);
-    void updateKeyEnPassant(Key& key, int square);
+    void updateKeyEp(Key& key, int square);
 };
 
 struct Board {
 
-    // attributes
+    // data members
 
-    Bitboard bitboards[7][2] = {};
+    Piece squares[SQUARE_NB] = { NO_PIECE };
 
-    Bitboard wbPieces[2] = {0, 0};
+    Bitboard byTypeBB[PIECE_TYPE_NB] = {}; // squares occupied by piece type
+    Bitboard byColorBB[COLOR_NB] = {}; // squares occupied by color
 
-    int pieceBoard[64];
+    // for example if you want the SQUARE_NB occupied by the white knights you 
+    // can do byTypeBB[KNIGHT] & byColorBB[WHITE]
 
-    Bitboard occupied;
-
-    int turn;
-
+    int  turn = WHITE;
     bool kingCastle[2];
     bool queenCastle[2];
-
-    bool enPassant;
-    int enPassantSquare;
-
-    Key key;
+    int  epSquare; // -1 if en passant is none
+    Key  key;
 
     // method
 
     Board();
-    Board(std::string fen);
+    Board(const std::string& fen);
 
     void clear();
-    void loadFen(std::string fen);
+    void loadFen(const std::string& fen);
 
     void display() const;
 

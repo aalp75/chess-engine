@@ -7,22 +7,22 @@
 #include "magic.h"
 #include "constants.h"
 
-Bitboard W_PAWN_ATTACKS[SQUARES];
-Bitboard B_PAWN_ATTACKS[SQUARES];
+Bitboard W_PAWN_ATTACKS[SQUARE_NB];
+Bitboard B_PAWN_ATTACKS[SQUARE_NB];
 
-Bitboard KNIGHT_ATTACKS[SQUARES];
+Bitboard KNIGHT_ATTACKS[SQUARE_NB];
 
-Bitboard BISHOP_MASK[SQUARES];
-Bitboard BISHOP_MAGIC[SQUARES];
-int      BISHOP_SHIFT[SQUARES];
-Bitboard BISHOP_ATTACKS[SQUARES][512];
+Bitboard BISHOP_MASK[SQUARE_NB];
+Bitboard BISHOP_MAGIC[SQUARE_NB];
+int      BISHOP_SHIFT[SQUARE_NB];
+Bitboard BISHOP_ATTACKS[SQUARE_NB][512];
 
-Bitboard ROOK_MASK[SQUARES];
-Bitboard ROOK_MAGIC[SQUARES];
-int      ROOK_SHIFT[SQUARES];
-Bitboard ROOK_ATTACKS[SQUARES][4096];
+Bitboard ROOK_MASK[SQUARE_NB];
+Bitboard ROOK_MAGIC[SQUARE_NB];
+int      ROOK_SHIFT[SQUARE_NB];
+Bitboard ROOK_ATTACKS[SQUARE_NB][4096];
 
-Bitboard KING_ATTACKS[SQUARES];
+Bitboard KING_ATTACKS[SQUARE_NB];
 
 std::mt19937_64 rng(std::random_device{}());
 
@@ -135,15 +135,19 @@ Bitboard findRookMagic(int square) {
 }
 
 void magic::initMagicTables() {
+    static bool initialized = false;
+    if (initialized) return;
+    initialized = true;
+
     // PAWN
-    for (int square = 0; square < SQUARES; square++) {
+    for (int square = 0; square < SQUARE_NB; square++) {
         Bitboard squareMask = 1ULL << square;
         W_PAWN_ATTACKS[square] = ((squareMask & NOT_FILE8) << 9) | ((squareMask & NOT_FILE1) << 7);
         B_PAWN_ATTACKS[square] = ((squareMask & NOT_FILE1) >> 9) | ((squareMask & NOT_FILE8) >> 7);
     }
 
     // KNIGHTS
-    for (int square = 0; square < SQUARES; square++) {
+    for (int square = 0; square < SQUARE_NB; square++) {
         Bitboard mask = 0;
         Bitboard squareMask = 1ULL << square;
         mask |= (squareMask & NOT_FILE8)             << 17;
@@ -159,7 +163,7 @@ void magic::initMagicTables() {
     }
 
     // BISHOP
-    for (int square = 0; square < SQUARES; square++) {
+    for (int square = 0; square < SQUARE_NB; square++) {
         Bitboard mask = 0;
         for (int d = 0; d < 4; d++) {
             int direction = BISHOP_DIRECTIONS[d];
@@ -169,8 +173,8 @@ void magic::initMagicTables() {
                 currentSquare += direction;
                 if (currentSquare < 0 || currentSquare > 63) break;
                 if (std::abs((currentSquare % 8) - (previousSquare % 8)) != 1) break;
-                int rank = currentSquare / RANKS;
-                int file = currentSquare % RANKS;
+                int rank = currentSquare / RANK_NB;
+                int file = currentSquare % RANK_NB;
                 if (rank == 0 || rank == 7 || file == 0 || file == 7) break;
                 mask |= (1ULL << currentSquare);
             }
@@ -181,7 +185,7 @@ void magic::initMagicTables() {
     }
 
     // ROOK
-    for (int square = 0; square < SQUARES; square++) {
+    for (int square = 0; square < SQUARE_NB; square++) {
         Bitboard mask = 0;
         for (int d = 0; d < 4; d++) {
             int direction = ROOK_DIRECTIONS[d];
@@ -191,8 +195,8 @@ void magic::initMagicTables() {
                 currentSquare += direction;
                 if (currentSquare < 0 || currentSquare > 63) break;
                 if (std::abs(direction) == 1 && currentSquare / 8 != previousSquare / 8) break;
-                int rank = currentSquare / RANKS;
-                int file = currentSquare % RANKS;
+                int rank = currentSquare / RANK_NB;
+                int file = currentSquare % RANK_NB;
                 if (direction ==  8 && rank == 7) break;
                 if (direction == -8 && rank == 0) break;
                 if (direction ==  1 && file == 7) break;
@@ -206,7 +210,7 @@ void magic::initMagicTables() {
     }
 
     // KING
-    for (int square = 0; square < SQUARES; square++) {
+    for (int square = 0; square < SQUARE_NB; square++) {
         Bitboard mask = 0;
         Bitboard squareMask = 1ULL << square;
         mask |= (squareMask & NOT_FILE8) << 9; // up-right

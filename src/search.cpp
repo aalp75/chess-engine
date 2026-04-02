@@ -31,7 +31,7 @@ Move findBestMove(Board& board, int maxDepth, TimeManager& timeManager, SearchSt
 
     for (int depth = 1; depth <= maxDepth; depth++) {
 
-        memset(killers, 0, sizeof(killers));
+        //memset(killers, 0, sizeof(killers));
 
         MoveList moves = generateMoves(board);
 
@@ -67,21 +67,20 @@ Move findBestMove(Board& board, int maxDepth, TimeManager& timeManager, SearchSt
             pickBest(moves, i);
             Move move = moves.moves[i];
             doMove(board, move, states, ply);
-            if (!board.isInCheck(board.turn ^ 1)) {
+            if ((states[ply].capturedPiece & 7) != KING && !board.isInCheck(board.turn ^ 1)) {
                 int score = -negamax(
-                    board, 
-                    states, 
-                    depth - 1, 
-                    -INF, 
-                    -currentBestScore, 
-                    ply + 1, 
+                    board,
+                    states,
+                    depth - 1,
+                    -INF,
+                    -currentBestScore,
+                    ply + 1,
                     timeManager,
                     stats
                 );
                 if (score > currentBestScore) {
                     currentBestScore = score;
                     currentBestMove = move;
-                    if (currentBestScore >= INF - 100) break;
                 }
             }
             undoMove(board, states, ply);
@@ -118,7 +117,7 @@ int negamax(Board& board,
 
     Key key = board.key;
     int ttScore;
-    if (probeTT(key, depth, alpha, beta, ttScore)) {
+    if (probeTT(key, depth, ply, alpha, beta, ttScore)) {
         stats.ttHits++;
         return ttScore;
     }
@@ -173,8 +172,8 @@ int negamax(Board& board,
         pickBest(moves, i);
         Move move = moves.moves[i];
         doMove(board, move, states, ply);
-        if (board.isInCheck(board.turn ^ 1)) {
-            undoMove(board, states, ply);   
+        if ((states[ply].capturedPiece & 7) == KING || board.isInCheck(board.turn ^ 1)) {
+            undoMove(board, states, ply);
             continue;
         }
         int score = -negamax(
@@ -194,7 +193,7 @@ int negamax(Board& board,
                 killers[1][ply] = killers[0][ply];
                 killers[0][ply] = move;
             }
-            storeTT(key, depth, beta, TT_BETA, move);
+            storeTT(key, depth, ply, beta, TT_BETA, move);
             return beta;
         }
         if (score > alpha) {
@@ -205,7 +204,7 @@ int negamax(Board& board,
 
     if (legal == 0) { // checkmate or stalemate
         int score = board.isInCheck(board.turn) ? -(INF - ply) : 0;
-        storeTT(key, depth, score, TT_EXACT, 0);
+        storeTT(key, depth, ply, score, TT_EXACT, 0);
         return score;
     }
 
@@ -214,7 +213,7 @@ int negamax(Board& board,
         flag = TT_ALPHA;
     }
 
-    storeTT(key, depth, alpha, flag, bestMove);
+    storeTT(key, depth, ply, alpha, flag, bestMove);
     return alpha;
 }
 
@@ -244,7 +243,7 @@ int quiescenceSearch(Board& board, StateInfo* states, int alpha, int beta, int p
         Move move = moves.moves[i];
         
         doMove(board, move, states, ply);
-        if (!board.isInCheck(board.turn ^ 1)) {
+        if ((states[ply].capturedPiece & 7) != KING && !board.isInCheck(board.turn ^ 1)) {
             int score = -quiescenceSearch(board, states, -beta, -alpha, ply + 1, qdepth + 1, timeManager, stats);
             if (score >= beta) { 
                 undoMove(board, states, ply); 

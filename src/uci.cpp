@@ -10,7 +10,6 @@
 #include <ctime>
 #include <filesystem>
 #include <cstring>
-
 #include "uci.h"
 #include "search.h"
 #include "moves.h"
@@ -55,7 +54,6 @@ std::string formatTime(long long ms) {
 }
 
 static void sendResults(const SearchResult& results) {
-
     std::string uci = "0000";
 
     if (results.bestMove != 0) {
@@ -275,6 +273,8 @@ void run(int initialDepth, bool playSound) {
                     timeManager.init(remaining, increment);
                 }
             }
+
+            logMsg("DEBUG  ", "Turn before search: " + std::string(board.turn == 0 ? "WHITE" : "BLACK"));
 
             auto searchStart = std::chrono::steady_clock::now();
             SearchStats stats;
