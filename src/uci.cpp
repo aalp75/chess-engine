@@ -53,6 +53,15 @@ std::string formatTime(long long ms) {
     return std::to_string(ms) + "ms";
 }
 
+std::string formatScore(int score) {
+    std::string res = std::to_string(score);
+    if (std::abs(score) > 100'000 - 100) {
+        int matedistance = (100'000 - std::abs(score) + 1) / 2;
+        res += " (Checkmate in " + std::to_string(matedistance) + ")";
+    }
+    return res;
+}
+
 static void sendResults(const SearchResult& results) {
     std::string uci = "0000";
 
@@ -65,7 +74,7 @@ static void sendResults(const SearchResult& results) {
     long long nps = (results.ms > 0) ? (totalNodes * 1000 / results.ms) : 0;
 
     logMsg("DEBUG  ", "Move #"        + std::to_string(results.countMove));
-    logMsg("DEBUG  ", "Score: "       + std::to_string(results.score));
+    logMsg("DEBUG  ", "Score: "       + formatScore(results.score));
     logMsg("DEBUG  ", "Depth: "       + std::to_string(results.stats.depth));
     logMsg("DEBUG  ", "Total nodes: " + formatNumber(totalNodes));
     logMsg("DEBUG  ", "Nodes: "       + formatNumber(results.stats.nodes));

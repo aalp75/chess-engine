@@ -4,7 +4,7 @@
 
 namespace magic {
 
-    void initMagicTables();
+    void initialize();
     Bitboard getPawnAttacks(int square, int color);
     Bitboard getKnightAttacks(int square);
     Bitboard getBishopAttacks(int square, Bitboard occupied);

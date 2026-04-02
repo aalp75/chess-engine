@@ -12,6 +12,7 @@ struct SearchStats {
     long long nodes  = 0;
     long long qnodes = 0;
     long long ttHits = 0;
+    bool stopped     = false;
 };
 
 Move findBestMove(Board& board, int depth, TimeManager& timeManager, SearchStats& stats);

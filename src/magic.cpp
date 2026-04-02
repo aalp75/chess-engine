@@ -22,7 +22,7 @@ Bitboard ROOK_MAGIC[SQUARE_NB];
 int      ROOK_SHIFT[SQUARE_NB];
 Bitboard ROOK_ATTACKS[SQUARE_NB][4096];
 
-Bitboard KING_ATTACKS[SQUARE_NB];P
+Bitboard KING_ATTACKS[SQUARE_NB];
 
 // TO DO at some point precompute it and load it in a text file or something similar
 
@@ -132,7 +132,7 @@ Bitboard findRookMagic(int square) {
     }
 }
 
-void magic::initMagicTables() {
+void magic::initialize() {
     static bool initialized = false;
     if (initialized) return;
     initialized = true;

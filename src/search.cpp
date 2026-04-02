@@ -13,12 +13,12 @@
 #include "timeManager.h"
 
 /*
-    TODO: too much duplicate code in findBestMove and negamax
-    TODO: add a timeManager for the depth depeening
+TODO: 
+- clean the code
+- early return in mate found
 
 */
 
-constexpr int INF = 100'000;
 constexpr int MAX_QDEPTH = 50;
 
 int killers[2][256];
@@ -85,13 +85,18 @@ Move findBestMove(Board& board, int maxDepth, TimeManager& timeManager, SearchSt
             }
             undoMove(board, states, ply);
         }
-        if (currentBestMove != 0 && !timeManager.isExpired()) {
+
+        // only accept a depth result if the search completed
+        if (stats.stopped) break;
+        
+        if (currentBestMove != 0) { // if it's a valid move
             bestMove = currentBestMove;
             bestScore = currentBestScore;
             stats.depth = depth;
         }
 
-        if (timeManager.isExpired()) break;
+        // checkmate found, it's not needed to search deeper
+        if (bestScore > MATE_BOUND) break; 
     }
 
     stats.score = bestScore;
@@ -108,9 +113,14 @@ int negamax(Board& board,
             SearchStats& stats) 
 {
     
+    if (stats.stopped) return alpha;
+    
     stats.nodes++;
 
-    if ((stats.nodes & 4095) == 0 && timeManager.isExpired()) return 0;
+    if ((stats.nodes & 4095) == 0 && timeManager.isExpired()) {
+        stats.stopped = true;
+        return alpha;
+    }
 
     if (depth == 0) {
         return quiescenceSearch(board, states, alpha, beta, ply, 0, timeManager, stats);
@@ -138,6 +148,10 @@ int negamax(Board& board,
             stats
         );
         undoNullMove(board, states, ply);
+
+        if (stats.stopped) {
+            return alpha;
+        }
 
         if (nullScore >= beta) {
             return beta;
@@ -175,7 +189,7 @@ int negamax(Board& board,
         pickBest(moves, i);
         Move move = moves.moves[i];
         doMove(board, move, states, ply);
-        if ((states[ply].capturedPiece & 7) == KING || board.isInCheck(board.side ^ 1)) {
+        if (board.isInCheck(board.side ^ 1)) {
             undoMove(board, states, ply);
             continue;
         }
@@ -190,7 +204,10 @@ int negamax(Board& board,
             stats
         );
         undoMove(board, states, ply);   
+        if (stats.stopped) return alpha;
+
         legal += 1;
+
         if (score >= beta) { // prune
             if (states[ply].capturedPiece == NO_PIECE) { // quiet move
                 killers[1][ply] = killers[0][ply];
@@ -222,7 +239,12 @@ int negamax(Board& board,
 
 int quiescenceSearch(Board& board, StateInfo* states, int alpha, int beta, int ply, int qdepth, TimeManager& timeManager, SearchStats& stats) {
 
-    if ((stats.qnodes & 4095) == 0 && timeManager.isExpired()) return 0;
+    if (stats.stopped) return alpha;
+
+    if ((stats.qnodes & 4095) == 0 && timeManager.isExpired()) {
+        stats.stopped = true;
+        return alpha;
+    }
 
     int eval = evaluate(board);
     if (eval >= beta) {
@@ -246,7 +268,7 @@ int quiescenceSearch(Board& board, StateInfo* states, int alpha, int beta, int p
         Move move = moves.moves[i];
         
         doMove(board, move, states, ply);
-        if ((states[ply].capturedPiece & 7) != KING && !board.isInCheck(board.side ^ 1)) {
+        if (!board.isInCheck(board.side ^ 1)) {
             int score = -quiescenceSearch(board, states, -beta, -alpha, ply + 1, qdepth + 1, timeManager, stats);
             if (score >= beta) { 
                 undoMove(board, states, ply); 
@@ -255,6 +277,10 @@ int quiescenceSearch(Board& board, StateInfo* states, int alpha, int beta, int p
             alpha = std::max(score, alpha);
         }
         undoMove(board, states, ply);
+
+        if (stats.stopped) {
+            return alpha;
+        }
     }
     return alpha;
 

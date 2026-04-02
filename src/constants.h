@@ -40,7 +40,9 @@ enum CastlingRights : uint8_t {
 
 enum MoveType { NORMAL, EN_PASSANT, CASTLING, PROMOTION };
 
-constexpr int CHECKMATE_SCORE = 100'000;
+constexpr int INF = 100'000;
+constexpr int MATE_SCORE = INF;
+constexpr int MATE_BOUND = INF - 100;
 
 constexpr int BISHOP_DIRECTIONS[4] = {9, 7, -7, -9};
 constexpr int ROOK_DIRECTIONS[4] = {8, 1, -1, -8};

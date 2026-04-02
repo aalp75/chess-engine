@@ -7,12 +7,14 @@
 #include "utils.h"
 #include "zobrist.h"
 
-// TODO: separate the board constructor with the load fen 
-// that avoids to recompute zobrist and magic bitboard initialization
+/*
+TODO:
+- fix the method isIncheck
+*/
 
 Board::Board() {
     zobrist::initialize();
-    magic::initMagicTables();
+    magic::initialize();
     clear();
 }
 
