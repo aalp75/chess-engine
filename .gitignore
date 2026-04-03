@@ -10,4 +10,6 @@ tests/perft_test*
 
 notes.txt
 notes2.txt
-tests/perft
+
+tests/perft_test
+tests/search_test

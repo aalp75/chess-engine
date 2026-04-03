@@ -1,0 +1,4 @@
+Time duration benchmarks for tests:
+
+- perft: 7.9 seconds
+

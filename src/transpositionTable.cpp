@@ -7,8 +7,8 @@ TTEntry tt[TT_SIZE];
 bool probeTT(Key key, int depth, int ply, int alpha, int beta, int& score) {
     TTEntry& entry = tt[key & (TT_SIZE - 1)];
 
-    if (entry.key != key) return false;
-    if (entry.depth < depth) return false;
+    // check collision and depth
+    if (entry.key != key || entry.depth < depth) return false;
 
     score = entry.score;
     if (score >  100'000 - 100) score -= ply;
