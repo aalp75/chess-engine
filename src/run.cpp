@@ -4,7 +4,7 @@
 #include "board.h"
 
 int main() {
-    int maxDepth = 30;
+    int maxDepth = 50;
     bool playSound = true;
-run(maxDepth, playSound); 
+    run(maxDepth, playSound);
 }

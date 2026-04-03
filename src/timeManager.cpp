@@ -5,12 +5,11 @@
 
 void TimeManager::init(long long remainingMs, long long incMs) {
     startTime = std::chrono::steady_clock::now();
-    long long budget = remainingMs / 22 + incMs / 3;
-    long long cap = remainingMs / 4;
+    long long budget = remainingMs / 20 + incMs / 3;
     if (remainingMs < 10000) { // under 10 seconds
-        budget = std::min(budget, remainingMs / 8);
+        budget = remainingMs / 40 + incMs / 10;
     }
-    endTime = startTime + std::chrono::milliseconds(std::min(budget, cap));
+    endTime = startTime + std::chrono::milliseconds(budget);
 }
 
 void TimeManager::initMovetime(long long movetimeMs) {
@@ -19,5 +18,5 @@ void TimeManager::initMovetime(long long movetimeMs) {
 }
 
 bool TimeManager::isExpired() const {
-    return (std::chrono::steady_clock::now() > endTime) ? true : false;
+    return (std::chrono::steady_clock::now() > endTime);
 }

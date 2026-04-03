@@ -7,12 +7,13 @@
 #include "timeManager.h"
 
 struct SearchStats {
-    long long score  = 0;
-    long long depth  = 0;
-    long long nodes  = 0;
-    long long qnodes = 0;
-    long long ttHits = 0;
-    bool stopped     = false;
+    long long score    = 0;
+    long long depth    = 0;
+    long long seldepth = 0;
+    long long nodes    = 0;
+    long long qnodes   = 0;
+    long long ttHits   = 0;
+    bool      stopped  = false;
 };
 
 Move findBestMove(Board& board, int depth, TimeManager& timeManager, SearchStats& stats);

@@ -73,22 +73,25 @@ static void sendResults(const SearchResult& results) {
 
     long long nps = (results.ms > 0) ? (totalNodes * 1000 / results.ms) : 0;
 
-    logMsg("DEBUG  ", "Move #"        + std::to_string(results.countMove));
-    logMsg("DEBUG  ", "Score: "       + formatScore(results.score));
-    logMsg("DEBUG  ", "Depth: "       + std::to_string(results.stats.depth));
-    logMsg("DEBUG  ", "Total nodes: " + formatNumber(totalNodes));
-    logMsg("DEBUG  ", "Nodes: "       + formatNumber(results.stats.nodes));
-    logMsg("DEBUG  ", "Q-Nodes: "     + formatNumber(results.stats.qnodes));
-    logMsg("DEBUG  ", "Search time: " + formatTime(results.ms));
-    logMsg("DEBUG  ", "NPS: "         + formatNumber(nps) + "/s");
-    logMsg("DEBUG  ", "TT Hit: "      + formatNumber(results.stats.ttHits));
+    logMsg("DEBUG  ", "Move #"          + std::to_string(results.countMove));
+    logMsg("DEBUG  ", "Score: "         + formatScore(results.score));
+    logMsg("DEBUG  ", "Depth: "         + std::to_string(results.stats.depth));
+    logMsg("DEBUG  ", "Deepest depth: " + std::to_string(results.stats.seldepth));
+    logMsg("DEBUG  ", "Total nodes: "   + formatNumber(totalNodes));
+    logMsg("DEBUG  ", "Nodes: "         + formatNumber(results.stats.nodes));
+    logMsg("DEBUG  ", "Q-Nodes: "       + formatNumber(results.stats.qnodes));
+    logMsg("DEBUG  ", "Search time: "   + formatTime(results.ms));
+    logMsg("DEBUG  ", "NPS: "           + formatNumber(nps) + "/s");
+    logMsg("DEBUG  ", "TT Hit: "        + formatNumber(results.stats.ttHits));
 
-    std::string info = "info depth "  + std::to_string(results.depth)
-                        + " score cp " + std::to_string(results.score)
-                        + " nodes "    + std::to_string(totalNodes)
-                        + " nps "      + std::to_string(nps)
-                        + " time "     + std::to_string(results.ms)
-                        + " pv "       + uci;
+    std::string info = std::string("info")
+                     + " depth "    + std::to_string(results.depth)
+                     + " seldepth " + std::to_string(results.stats.seldepth)
+                     + " score cp " + std::to_string(results.score)
+                     + " nodes "    + std::to_string(totalNodes)
+                     + " nps "      + std::to_string(nps)
+                     + " time "     + std::to_string(results.ms)
+                     + " pv "       + uci;
                         
     send(info);
     send("bestmove " + uci);

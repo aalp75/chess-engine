@@ -197,9 +197,9 @@ int negamax(Board& board,
             board, 
             states, 
             depth - 1, 
-            -beta, 
-            -alpha, 
-            ply + 1, 
+            -beta,
+            -alpha,
+            ply + 1,
             timeManager, 
             stats
         );
@@ -246,11 +246,15 @@ int quiescenceSearch(Board& board, StateInfo* states, int alpha, int beta, int p
         return alpha;
     }
 
+    if (ply > stats.seldepth) {
+        stats.seldepth = ply;
+    }
+
     int eval = evaluate(board);
     if (eval >= beta) {
         return beta;
     }
-    if (qdepth > MAX_QDEPTH) {
+    if (qdepth > MAX_QDEPTH) { // drop it as some point
         return eval;
     }
 
