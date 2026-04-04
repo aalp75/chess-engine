@@ -51,14 +51,22 @@ int minimax(Board& board, StateInfo* states, int depth, int ply, int player) {
 
     int bestScore = (player == 0) ? -INF : INF;
 
+    int legal = 0;
+
     for (int i = 0; i < moves.count; i++) {
         Move move = moves.moves[i];
         doMove(board, move, states, ply);
         if (!board.isInCheck(board.side ^ 1)) {
+            legal++;
             int score = minimax(board, states, depth - 1, ply + 1, player ^ 1);
             bestScore = (player == 0) ? std::max(bestScore, score) : std::min(bestScore, score);
         }
         undoMove(board, states, ply);
+    }
+
+    if (legal == 0) {
+        if (board.isInCheck(board.side)) return (player == 0) ? -(MATE_SCORE - ply) : (MATE_SCORE - ply);
+        return 0; // stalemate
     }
     return bestScore;
 }

@@ -26,8 +26,8 @@ inline int movePromo(Move move) {
 }
 
 struct MoveList {
-    Move moves[256];
-    int scores[256];
+    Move moves[256]; // it's less than the maximum number of move possible from a position
+    int scores[256]; // it's used for sorting
     int count = 0;
 
     void addMove(int from, int to, int type = 0, int promo = 0) {
@@ -35,6 +35,10 @@ struct MoveList {
     }
 };
 
+/**
+ * pickBest does a selection sort on-the-fly. It loop over all moves and ensure
+ * that the moves[startIndex] is the best move in [startIndex, ..., end]
+ */
 inline void pickBest(MoveList& moves, int startIndex) {
     int bestIndex = startIndex;
     for (int i = startIndex + 1; i < moves.count; i++) {
@@ -42,6 +46,8 @@ inline void pickBest(MoveList& moves, int startIndex) {
             bestIndex = i;
         }
     }
-    std::swap(moves.moves[startIndex], moves.moves[bestIndex]);
-    std::swap(moves.scores[startIndex], moves.scores[bestIndex]);
+    if (bestIndex != startIndex) {
+        std::swap(moves.moves[startIndex], moves.moves[bestIndex]);
+        std::swap(moves.scores[startIndex], moves.scores[bestIndex]);
+    }
 }

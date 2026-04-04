@@ -19,8 +19,9 @@ struct TTEntry {
     TTFlag flag = TT_EXACT;
 };
 
-constexpr int TT_SIZE = 1 << 23;
+constexpr int TT_SIZE = 1 << 24;
 extern TTEntry tt[TT_SIZE];
 
+void clearTT();
 bool probeTT(Key key, int depth, int ply, int alpha, int beta, int& score);
-void storeTT(Key key, int depth, int ply, int score, TTFlag flag, Move bestMove);
+void storeTT(Key key, int depth, int score, TTFlag flag, Move bestMove);

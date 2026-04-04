@@ -20,3 +20,20 @@ inline int moveScore(const Board& board, const Move move) {
     int victimVal = (type == EN_PASSANT) ? 100 : PIECE_VALUES_MG[victim];
     return victimVal * 10 - PIECE_VALUES_MG[attacker];
 }
+
+inline void scoreMoves(const Board& board, MoveList& moves, Move ttMove, int ply, const int (*killers)[256]) {
+    for (int i = 0; i < moves.count; i++) {
+        if (moves.moves[i] == ttMove) {
+            moves.scores[i] = INF;
+        }
+        else if (moves.moves[i] == killers[0][ply]) {
+            moves.scores[i] = KILLER_SCORE1;
+        }
+        else if (moves.moves[i] == killers[1][ply]) {
+            moves.scores[i] = KILLER_SCORE2;
+        }
+        else {
+            moves.scores[i] = moveScore(board, moves.moves[i]);
+        }
+    }
+}

@@ -5,10 +5,10 @@
 
 void TimeManager::init(long long remainingMs, long long incMs) {
     startTime = std::chrono::steady_clock::now();
-    long long budget = remainingMs / 20 + incMs / 3;
-    if (remainingMs < 10000) { // under 10 seconds
-        budget = remainingMs / 40 + incMs / 10;
-    }
+    long long budget = remainingMs / 20 + incMs / 2;
+    /*if (remainingMs < 10000) { // under 10 seconds
+        budget = remainingMs / 30 + incMs / 3;
+    }*/
     endTime = startTime + std::chrono::milliseconds(budget);
 }
 

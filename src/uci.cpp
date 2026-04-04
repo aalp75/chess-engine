@@ -1,3 +1,5 @@
+#include "uci.h"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -10,7 +12,7 @@
 #include <ctime>
 #include <filesystem>
 #include <cstring>
-#include "uci.h"
+
 #include "search.h"
 #include "moves.h"
 #include "board.h"
@@ -19,6 +21,7 @@
 #include "moveList.h"
 #include "transpositionTable.h"
 #include "timeManager.h"
+#include "utils.h"
 
 /*
     TODO: Add a small array int[] infos that keeps all the important infos for debugging:
@@ -39,12 +42,6 @@ static void logMsg(const std::string& dir, const std::string& msg) {
 static void send(const std::string& msg) {
     logMsg("SEND   ", msg);
     std::cout << msg << "\n";
-}
-
-std::string formatNumber(long long nodes) {
-    if (nodes >= 1000000) return std::to_string(nodes / 100000 / 10.0).substr(0, 4) + "M";
-    if (nodes >= 1000)    return std::to_string(nodes / 100 / 10.0).substr(0, 4) + "K";
-    return std::to_string(nodes);
 }
 
 std::string formatTime(long long ms) {
@@ -164,11 +161,12 @@ std::vector<std::string> split(const std::string& s) {
 void applyMoves(Board& board, const std::vector<std::string>& tokens) {
     StateInfo states[256];
     int ply = 0;
-
+    gameHistory[gameHistoryLen++] = board.key; // starting position
     for (const std::string& uci : tokens) {
         Move move = uciToMove(board, uci);
         if (move != 0) {
             doMove(board, move, states, ply++);
+            gameHistory[gameHistoryLen++] = board.key;
         }
     }
 }
@@ -224,11 +222,13 @@ void run(int initialDepth, bool playSound) {
             board = Board(FEN_START);
             std::memset(tt, 0, sizeof(tt)); // clear transposition table
             countMove = 0;
+            gameHistoryLen = 0;
         } 
         else if (tokens[0] == "position") {
             if (tokens.size() >= 2 && tokens[1] == "startpos") {
+                gameHistoryLen = 0;
                 board.loadFen(FEN_START);
-
+                gameHistory[gameHistoryLen++] = board.key;
                 auto it = std::find(tokens.begin(), tokens.end(), "moves");
                 if (it != tokens.end()) {
                     std::vector<std::string> moves(it + 1, tokens.end());
@@ -247,7 +247,9 @@ void run(int initialDepth, bool playSound) {
                     fen += tokens[i];
                 }
 
+                gameHistoryLen = 0;
                 board.loadFen(fen);
+                gameHistory[gameHistoryLen++] = board.key;
 
                 if (it != tokens.end()) {
                     std::vector<std::string> moves(it + 1, tokens.end());
@@ -289,11 +291,12 @@ void run(int initialDepth, bool playSound) {
                 }
             }
 
-            logMsg("DEBUG  ", "Turn before search: " + std::string(board.side == 0 ? "WHITE" : "BLACK"));
+            logMsg("DEBUG  ", "Play " + std::string(board.side == 0 ? "WHITE" : "BLACK"));
 
             auto searchStart = std::chrono::steady_clock::now();
             SearchStats stats;
-            Move move = findBestMove(board, depth, timeManager, stats);
+            bool useQSearch = true;
+            Move move = findBestMove(board, depth, timeManager, stats, useQSearch);
             countMove++;
             auto searchEnd = std::chrono::steady_clock::now();
             long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(searchEnd - searchStart).count();

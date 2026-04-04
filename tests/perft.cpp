@@ -45,10 +45,10 @@ int main(int argc, char* argv[]) {
 
     std::cout.imbue(std::locale("")); // print
 
-    std::ifstream file("tests/perftsuite.txt");
+    std::ifstream file("tests/inputs/perftsuite.epd");
 
     if (!file.is_open()) {
-        std::cerr << "Could not open tests/perftsuite.txt" << std::endl;
+        std::cerr << "Could not open tests/inputs/perftsuite.epd" << std::endl;
         return 1;
     }
 

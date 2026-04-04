@@ -44,6 +44,13 @@ constexpr int INF = 100'000;
 constexpr int MATE_SCORE = INF;
 constexpr int MATE_BOUND = INF - 100;
 
+constexpr int KILLER_SCORE1 = INF - 1'000;
+constexpr int KILLER_SCORE2 = INF - 2'000;
+
+constexpr int QS_DEPTH = -1;
+
+constexpr int DELTA_MARGIN = 200;
+
 constexpr int BISHOP_DIRECTIONS[4] = {9, 7, -7, -9};
 constexpr int ROOK_DIRECTIONS[4] = {8, 1, -1, -8};
 constexpr int QUEEN_DIRECTIONS[8] = {8, 1, -1, -8, 9, 7, -7, -9};

@@ -3,7 +3,7 @@ set -e
 
 ROOT=/home/antoine/Documents/github/chess-engine
 
-g++ -std=c++17 -O2 -DTEST\
+g++ -std=c++23 -O3 -march=alderlake -mtune=alderlake -flto \
     "$ROOT/tests/search.cpp" \
     "$ROOT/src/board.cpp" \
     "$ROOT/src/moves.cpp" \
@@ -12,8 +12,9 @@ g++ -std=c++17 -O2 -DTEST\
     "$ROOT/src/zobrist.cpp" \
     "$ROOT/src/minimax.cpp" \
     "$ROOT/src/evaluate.cpp" \
-    "$ROOT/src/search_new.cpp" \
+    "$ROOT/src/search.cpp" \
     "$ROOT/src/timeManager.cpp" \
+    "$ROOT/src/transpositionTable.cpp" \
     -I "$ROOT/src" \
     -o "$ROOT/tests/search_test"
 

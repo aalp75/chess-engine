@@ -6,17 +6,40 @@
 #include "moves.h"
 #include "timeManager.h"
 
+/**
+ * TODO:
+ * - clean the code
+ * - rename the function with shorter name
+ * - less arguments in the function
+ * - add more comments to readibility
+ * - better handling of this gameHistory
+ */
+
+extern Key gameHistory[1024];
+extern int gameHistoryLen;
+
+/**
+ * nodes = positions evaluated in main search (depth > 0)
+ * qnodes = positions evaluated in qsearch (depth <= 0)
+ */
+
 struct SearchStats {
-    long long score    = 0;
-    long long depth    = 0;
-    long long seldepth = 0;
+    int       score    = 0;
+    int       depth    = 0;
+    int       seldepth = 0;
     long long nodes    = 0;
     long long qnodes   = 0;
     long long ttHits   = 0;
     bool      stopped  = false;
 };
 
-Move findBestMove(Board& board, int depth, TimeManager& timeManager, SearchStats& stats);
+Move findBestMove(
+    Board& board, 
+    int depth, 
+    TimeManager& timeManager, 
+    SearchStats& stats, 
+    bool useQSearch
+);
 
 int negamax(
     Board& board, 
@@ -26,7 +49,9 @@ int negamax(
     int beta, 
     int ply, 
     TimeManager& timeManager, 
-    SearchStats& stats
+    SearchStats& stats,
+    bool useQSearch,
+    bool nullMove = false
 );
 
 int quiescenceSearch(
@@ -35,7 +60,6 @@ int quiescenceSearch(
     int alpha, 
     int beta, 
     int ply, 
-    int qdepth, 
     TimeManager& timeManager, 
     SearchStats& stats
 );
