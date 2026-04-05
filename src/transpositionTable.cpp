@@ -23,8 +23,8 @@ bool probeTT(Key key, int depth, int ply, int alpha, int beta, int& score) {
     if (score == -MATE_SCORE) score += ply;
 
     if (entry.flag == TT_EXACT) return true;
-    if (entry.flag == TT_ALPHA && score <= alpha) return true;
-    if (entry.flag == TT_BETA  && score >= beta)  return true;
+    if (entry.flag == TT_UPPER_BOUND && score <= alpha) return true;
+    if (entry.flag == TT_LOWER_BOUND && score >= beta)  return true;
 
     return false;
 }

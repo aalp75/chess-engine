@@ -2,6 +2,34 @@
 
 // https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function
 
+static constexpr int PASSED_BONUS_MG[8] = { 0,  5, 10, 20, 35,  60, 100, 0 };
+static constexpr int PASSED_BONUS_EG[8] = { 0, 10, 20, 40, 65, 100, 150, 0 };
+
+static constexpr int DOUBLED_PENALTY_MG  = 15;
+static constexpr int DOUBLED_PENALTY_EG  = 20;
+static constexpr int ISOLATED_PENALTY_MG = 15;
+static constexpr int ISOLATED_PENALTY_EG = 10;
+
+constexpr int PIECE_VALUES_MG[7] = {
+    0,    // NO PIECE
+    82,   // PAWN
+    337,  // KNIGHT
+    365,  // BISHOP
+    477,  // ROOK
+    1025, // QUEEN
+    0     // KING
+};
+
+constexpr int PIECE_VALUES_EG[7] = {
+    0,   // NO PIECE
+    94,  // PAWN
+    281, // KNIGHT
+    297, // BISHOP
+    512, // ROOK
+    936, // QUEEN
+    0    //KING
+};
+
 inline constexpr int PAWN_TABLE_MG[64] = {
       0,   0,   0,   0,   0,   0,  0,   0,
      98, 134,  61,  95,  68, 126, 34, -11,

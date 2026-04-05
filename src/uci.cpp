@@ -22,6 +22,7 @@
 #include "transpositionTable.h"
 #include "timeManager.h"
 #include "utils.h"
+#include "searchNew.h"
 
 /*
     TODO: Add a small array int[] infos that keeps all the important infos for debugging:
@@ -171,7 +172,7 @@ void applyMoves(Board& board, const std::vector<std::string>& tokens) {
     }
 }
 
-void run(int initialDepth, bool playSound) {
+void runGame(int initialDepth, bool playSound) {
     const std::string logDir = "/home/antoine/Documents/github/chess-engine/logs";
     std::filesystem::create_directories(logDir);
     auto now = std::chrono::system_clock::now();
@@ -296,7 +297,8 @@ void run(int initialDepth, bool playSound) {
             auto searchStart = std::chrono::steady_clock::now();
             SearchStats stats;
             bool useQSearch = true;
-            Move move = findBestMove(board, depth, timeManager, stats, useQSearch);
+            //Move move = findBestMove(board, depth, timeManager, stats, useQSearch);
+            Move move = findBestMoveNew(board, depth, timeManager, stats);
             countMove++;
             auto searchEnd = std::chrono::steady_clock::now();
             long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(searchEnd - searchStart).count();
@@ -331,3 +333,15 @@ void run(int initialDepth, bool playSound) {
 
     logFile.close();
 }
+
+void run(int depth, bool playSound) {
+    try {
+        runGame(depth, playSound);
+    }
+    catch (const std::exception& e) {
+        logMsg("ERROR  ", "Search failed: " + std::string(e.what()));
+    } 
+    catch (...) {
+        logMsg("ERROR  ", "Search failed: unknown exception");
+    }
+};

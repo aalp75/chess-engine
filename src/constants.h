@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+// split this file in constants.h and types.h
+
 using Bitboard = uint64_t;
 using Move     = uint32_t;
 using Key      = uint64_t;
@@ -64,6 +66,10 @@ constexpr uint64_t RANK6 = 0x0000FF0000000000ULL;
 constexpr uint64_t RANK7 = 0x00FF000000000000ULL;
 constexpr uint64_t RANK8 = 0xFF00000000000000ULL;
 
+const Bitboard RANKS[8] = {
+    RANK1, RANK2, RANK3, RANK4, RANK5, RANK6, RANK7, RANK8
+};
+
 constexpr uint64_t FILE1 = 0x0101010101010101ULL; // a file
 constexpr uint64_t FILE2 = 0x0202020202020202ULL; // b file
 constexpr uint64_t FILE3 = 0x0404040404040404ULL; // c file
@@ -72,6 +78,10 @@ constexpr uint64_t FILE5 = 0x1010101010101010ULL; // e file
 constexpr uint64_t FILE6 = 0x2020202020202020ULL; // f file
 constexpr uint64_t FILE7 = 0x4040404040404040ULL; // g file
 constexpr uint64_t FILE8 = 0x8080808080808080ULL; // h file
+
+const Bitboard FILES[8] = {
+    FILE1, FILE2, FILE3, FILE4, FILE5, FILE6, FILE7, FILE8
+};
 
 constexpr uint64_t NOT_RANK1 = ~RANK1;
 constexpr uint64_t NOT_RANK2 = ~RANK2;

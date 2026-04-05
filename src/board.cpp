@@ -1,8 +1,10 @@
+#include "board.h"
+
 #include <cctype>
 #include <iostream>
 #include <sstream>
 
-#include "board.h"
+#include "evaluate.h"
 #include "magic.h"
 #include "utils.h"
 #include "zobrist.h"
@@ -15,6 +17,7 @@ TODO:
 Board::Board() {
     zobrist::initialize();
     magic::initialize();
+    eval::initialize();
     clear();
 }
 

@@ -6,6 +6,7 @@
 #include "constants.h"
 #include "evaluate.h"
 #include "moveList.h"
+#include "pieceSquareTable.h"
 
 inline int moveScore(const Board& board, const Move move) {
     int from = moveFrom(move);

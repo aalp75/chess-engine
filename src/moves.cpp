@@ -700,8 +700,6 @@ void generateTacticalPawnMoves(const Board& board, MoveList& moves) {
         while (targets) {
             int toSquare = __builtin_ctzll(targets);
             moves.addMove(toSquare - 8, toSquare, PROMOTION, QUEEN);
-            moves.addMove(toSquare - 8, toSquare, PROMOTION, ROOK);
-            moves.addMove(toSquare - 8, toSquare, PROMOTION, BISHOP);
             moves.addMove(toSquare - 8, toSquare, PROMOTION, KNIGHT);
             targets &= targets - 1;
         }
@@ -711,8 +709,6 @@ void generateTacticalPawnMoves(const Board& board, MoveList& moves) {
         while (targets) {
             int toSquare = __builtin_ctzll(targets);
             moves.addMove(toSquare + 8, toSquare, PROMOTION, QUEEN);
-            moves.addMove(toSquare + 8, toSquare, PROMOTION, ROOK);
-            moves.addMove(toSquare + 8, toSquare, PROMOTION, BISHOP);
             moves.addMove(toSquare + 8, toSquare, PROMOTION, KNIGHT);
             targets &= targets - 1;
         }
@@ -724,8 +720,6 @@ void generateTacticalPawnMoves(const Board& board, MoveList& moves) {
         while (targets) {
             int toSquare = __builtin_ctzll(targets);
             moves.addMove(toSquare - 9, toSquare, PROMOTION, QUEEN);
-            moves.addMove(toSquare - 9, toSquare, PROMOTION, ROOK);
-            moves.addMove(toSquare - 9, toSquare, PROMOTION, BISHOP);
             moves.addMove(toSquare - 9, toSquare, PROMOTION, KNIGHT);
             targets &= targets - 1;
         }
@@ -733,8 +727,6 @@ void generateTacticalPawnMoves(const Board& board, MoveList& moves) {
         while (targets) {
             int toSquare = __builtin_ctzll(targets);
             moves.addMove(toSquare - 7, toSquare, PROMOTION, QUEEN);
-            moves.addMove(toSquare - 7, toSquare, PROMOTION, ROOK);
-            moves.addMove(toSquare - 7, toSquare, PROMOTION, BISHOP);
             moves.addMove(toSquare - 7, toSquare, PROMOTION, KNIGHT);
             targets &= targets - 1;
         }
@@ -744,8 +736,6 @@ void generateTacticalPawnMoves(const Board& board, MoveList& moves) {
         while (targets) {
             int toSquare = __builtin_ctzll(targets);
             moves.addMove(toSquare + 7, toSquare, PROMOTION, QUEEN);
-            moves.addMove(toSquare + 7, toSquare, PROMOTION, ROOK);
-            moves.addMove(toSquare + 7, toSquare, PROMOTION, BISHOP);
             moves.addMove(toSquare + 7, toSquare, PROMOTION, KNIGHT);
             targets &= targets - 1;
         }
@@ -753,8 +743,6 @@ void generateTacticalPawnMoves(const Board& board, MoveList& moves) {
         while (targets) {
             int toSquare = __builtin_ctzll(targets);
             moves.addMove(toSquare + 9, toSquare, PROMOTION, QUEEN);
-            moves.addMove(toSquare + 9, toSquare, PROMOTION, ROOK);
-            moves.addMove(toSquare + 9, toSquare, PROMOTION, BISHOP);
             moves.addMove(toSquare + 9, toSquare, PROMOTION, KNIGHT);
             targets &= targets - 1;
         }

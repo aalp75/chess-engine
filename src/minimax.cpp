@@ -43,7 +43,7 @@ Move findBestMoveMinimax(Board& board, int depth, SearchStats& stats) {
 
 int minimax(Board& board, StateInfo* states, int depth, int ply, int player) {
     if (depth == 0) {
-        int eval = evaluate(board);
+        int eval = eval::evaluate(board);
         return (player == 0) ? eval : -eval;
     }
 

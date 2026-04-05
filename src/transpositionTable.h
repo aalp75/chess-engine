@@ -7,8 +7,8 @@
 
 enum TTFlag {
     TT_EXACT,   
-    TT_ALPHA,   // upper bound (real score <= stored score)
-    TT_BETA     // lower bound (real score >= stored score)
+    TT_UPPER_BOUND,   // real score <= stored score (alpha was not raised)
+    TT_LOWER_BOUND    // real score >= stored score (caused a beta cutoff)
 };
 
 struct TTEntry {

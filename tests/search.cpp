@@ -17,6 +17,7 @@
 #include "../src/timeManager.h"
 #include "../src/transpositionTable.h"
 #include "../src/utils.h"
+#include "../src/searchNew.h"
 
 
 bool testAccuracy(std::vector<std::string> fens, int maxDepth, bool verbose) {
@@ -64,7 +65,7 @@ SearchStats testSpeed(Board& board, int depth, bool verbose) {
     TimeManager timeManager;
     timeManager.init(1'000'000, 0); // no time limit
     clearTT();
-    findBestMove(board, depth, timeManager, stats, true);
+    findBestMoveNew(board, depth, timeManager, stats);
     return stats;
 }
 
@@ -126,7 +127,7 @@ int main(int argc, char* argv[]) {
     //testAccuracy(fens, maxDepth, false);
 
     auto start = std::chrono::high_resolution_clock::now();
-    int depth = 10;
+    int depth = 25;
     int cnt = 0;
     long long totalNNodes = 0;
     long long totalQNodes = 0;
@@ -147,7 +148,7 @@ int main(int argc, char* argv[]) {
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "Results: " << std::endl;
-    std::cout << " - Depth: " << depth << " (deepest: " << seldepth << ")" << std::endl;
+    std::cout << " - Depth: " << depth << " / " << seldepth << std::endl;
     std::cout << " - Speed: " << elapsed.count() << " seconds" << std::endl;
     std::cout << " - Nodes: " << formatNumber(totalNNodes) << " seconds" << std::endl;
     std::cout << " - Qnodes: " << formatNumber(totalQNodes) << " seconds" << std::endl;
