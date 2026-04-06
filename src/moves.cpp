@@ -24,7 +24,7 @@ __builtin_ctzll(12) = 2 because 12 = 1100 --> move this to a helper
 
 */
 
-void doMove(Board& board, Move move, StateInfo* states, int ply) {
+void doMove(Board& board, Move move) {
     int fromSquare = moveFrom(move);
     int toSquare   = moveTo(move);
     int type       = moveType(move);
@@ -37,7 +37,7 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
     PieceType pieceType = PieceType(piece & 7);
     Piece captured      = (type == EN_PASSANT) ? Piece(PAWN | (enemyColor << 3)) : board.squares[toSquare];
 
-    StateInfo& newState = states[ply];
+    StateInfo& newState = board.states[board.ply++];
 
     newState.fromSquare     = fromSquare;
     newState.toSquare       = toSquare;
@@ -172,9 +172,9 @@ void doMove(Board& board, Move move, StateInfo* states, int ply) {
     zobrist::updateKeySide(board.key);
 }
 
-void undoMove(Board& board, StateInfo* states, int ply) {
+void undoMove(Board& board) {
 
-    StateInfo& state = states[ply];
+    StateInfo& state = board.states[--board.ply];
 
     int fromSquare      = state.fromSquare;
     int toSquare        = state.toSquare;
@@ -256,8 +256,8 @@ void undoMove(Board& board, StateInfo* states, int ply) {
     board.side           = static_cast<Color>(board.side ^ 1);
 }
 
-void doNullMove(Board& board, StateInfo* states, int ply) {
-    StateInfo& newState = states[ply];
+void doNullMove(Board& board) {
+    StateInfo& newState = board.states[board.ply++];
     newState.epSquare   = board.epSquare;
     newState.key        = board.key;
 
@@ -270,8 +270,9 @@ void doNullMove(Board& board, StateInfo* states, int ply) {
     board.switchSide();
 }
 
-void undoNullMove(Board& board, StateInfo* states, int ply) {
-    StateInfo& state = states[ply];
+void undoNullMove(Board& board) {
+    StateInfo& state = board.states[--board.ply];
+
     board.key      = state.key;
     board.epSquare = state.epSquare;
     board.side     = static_cast<Color>(board.side ^ 1);

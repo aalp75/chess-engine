@@ -39,7 +39,7 @@ struct MoveList {
  * pickBest does a selection sort on-the-fly. It loop over all moves and ensure
  * that the moves[startIndex] is the best move in [startIndex, ..., end]
  */
-inline void pickBest(MoveList& moves, int startIndex) {
+inline Move pickBest(MoveList& moves, int startIndex) {
     int bestIndex = startIndex;
     for (int i = startIndex + 1; i < moves.count; i++) {
         if (moves.scores[i] > moves.scores[bestIndex]) {
@@ -50,4 +50,5 @@ inline void pickBest(MoveList& moves, int startIndex) {
         std::swap(moves.moves[startIndex], moves.moves[bestIndex]);
         std::swap(moves.scores[startIndex], moves.scores[bestIndex]);
     }
+    return moves.moves[startIndex];
 }

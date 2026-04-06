@@ -12,7 +12,7 @@
 #include "../src/constants.h"
 #include "../src/moveList.h"
 
-int perft(Board& board, int depth, int ply, StateInfo* states) {
+int perft(Board& board, int depth) {
     if (depth == 0) return 1;
     
     MoveList moves = generateMoves(board);
@@ -21,16 +21,16 @@ int perft(Board& board, int depth, int ply, StateInfo* states) {
     
     for (int i = 0; i < moves.count; i++) {
         Move move = moves.moves[i];
-        doMove(board, move, states, ply);
+        doMove(board, move);
         //assert(board.key == board.hash());
         if (!board.isInCheck(board.side ^ 1)) {
-            int nodes = perft(board, depth - 1, ply + 1, states);
+            int nodes = perft(board, depth - 1);
             totalNodes += nodes;
-            if (ply == 0) {
-                //std::cout << move[0] << "->" << move[1] << " : " << nodes << std::endl;
+            if (false) { // divide
+                // TO ADD
             }
         }
-        undoMove(board, states, ply);
+        undoMove(board);
     }
 
     return totalNodes;
@@ -53,7 +53,6 @@ int main(int argc, char* argv[]) {
     }
 
     Board board;
-    StateInfo states[256];
     int passed = 0;
     int failed = 0;
 
@@ -83,7 +82,7 @@ int main(int argc, char* argv[]) {
                 continue;
             }
 
-            long long nodes = perft(board, depth, 0, states);
+            long long nodes = perft(board, depth);
             bool ok = (nodes == expected);
 
             ok ? passed++ : failed++;

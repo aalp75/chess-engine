@@ -13,7 +13,6 @@ g++ -std=c++23 -O3 -march=alderlake -mtune=alderlake -flto \
     "$ROOT/src/minimax.cpp" \
     "$ROOT/src/evaluate.cpp" \
     "$ROOT/src/search.cpp" \
-    "$ROOT/src/searchNew.cpp" \
     "$ROOT/src/timeManager.cpp" \
     "$ROOT/src/transpositionTable.cpp" \
     -I "$ROOT/src" \

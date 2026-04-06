@@ -1,3 +1,4 @@
-UCI-compatible chess engine written in C++.
+[![lichess-bullet](https://lichess-shield.vercel.app/api?username=Optionfish&format=bullet)](https://lichess.org/@/Optionfish/perf/bullet)
+[![lichess-blitz](https://lichess-shield.vercel.app/api?username=Optionfish&format=blitz)](https://lichess.org/@/Optionfish/perf/blitz)
 
-Rated ~1900 elo on lichess: https://lichess.org/@/Optionfish
+UCI-compatible chess engine written in C++.

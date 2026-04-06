@@ -13,5 +13,4 @@ with those of an exhaustive minimax search
 #include "search.h"
 
 Move findBestMoveMinimax(Board& board, int depth, SearchStats& stats);
-int minimax(Board& board, StateInfo* states, int depth, int ply, int player);
-//int quiescenceSearchMinimax(Board& board, StateInfo* states, int ply, int player);
+int minimax(Board& board, int depth, int player);

@@ -22,7 +22,6 @@
 #include "transpositionTable.h"
 #include "timeManager.h"
 #include "utils.h"
-#include "searchNew.h"
 
 /*
     TODO: Add a small array int[] infos that keeps all the important infos for debugging:
@@ -159,14 +158,12 @@ std::vector<std::string> split(const std::string& s) {
     return tokens;
 }
 
-void applyMoves(Board& board, const std::vector<std::string>& tokens) {
-    StateInfo states[256];
-    int ply = 0;
-    gameHistory[gameHistoryLen++] = board.key; // starting position
+void applyMoves(Board& board, Key* gameHistory, int& gameHistoryLen,
+                const std::vector<std::string>& tokens) {
     for (const std::string& uci : tokens) {
         Move move = uciToMove(board, uci);
         if (move != 0) {
-            doMove(board, move, states, ply++);
+            doMove(board, move);
             gameHistory[gameHistoryLen++] = board.key;
         }
     }
@@ -186,6 +183,10 @@ void runGame(int initialDepth, bool playSound) {
     auto initEnd = std::chrono::steady_clock::now();
     long long initMs = std::chrono::duration_cast<std::chrono::milliseconds>(initEnd - initStart).count();
     logMsg("DEBUG  ", "Board initialized in " + formatTime(initMs));
+
+    Key gameHistory[1024] = {};
+    int gameHistoryLen    = 0;
+    gameHistory[gameHistoryLen++] = board.key;
 
     int countMove = 0;
     int lastScore = 0;
@@ -221,10 +222,11 @@ void runGame(int initialDepth, bool playSound) {
                 [[maybe_unused]] int _ = system("paplay /usr/share/sounds/freedesktop/stereo/message.oga &");
             }
             board = Board(FEN_START);
-            std::memset(tt, 0, sizeof(tt)); // clear transposition table
-            countMove = 0;
+            std::memset(tt, 0, sizeof(tt));
             gameHistoryLen = 0;
-        } 
+            gameHistory[gameHistoryLen++] = board.key;
+            countMove = 0;
+        }
         else if (tokens[0] == "position") {
             if (tokens.size() >= 2 && tokens[1] == "startpos") {
                 gameHistoryLen = 0;
@@ -233,9 +235,9 @@ void runGame(int initialDepth, bool playSound) {
                 auto it = std::find(tokens.begin(), tokens.end(), "moves");
                 if (it != tokens.end()) {
                     std::vector<std::string> moves(it + 1, tokens.end());
-                    applyMoves(board, moves);
+                    applyMoves(board, gameHistory, gameHistoryLen, moves);
                 }
-            } 
+            }
             else if (tokens.size() >= 3 && tokens[1] == "fen") {
                 auto it = std::find(tokens.begin(), tokens.end(), "moves");
                 size_t fenEnd = (it != tokens.end())
@@ -254,7 +256,7 @@ void runGame(int initialDepth, bool playSound) {
 
                 if (it != tokens.end()) {
                     std::vector<std::string> moves(it + 1, tokens.end());
-                    applyMoves(board, moves);
+                    applyMoves(board, gameHistory, gameHistoryLen, moves);
                 }
             }
         }
@@ -295,10 +297,11 @@ void runGame(int initialDepth, bool playSound) {
             logMsg("DEBUG  ", "Play " + std::string(board.side == 0 ? "WHITE" : "BLACK"));
 
             auto searchStart = std::chrono::steady_clock::now();
-            SearchStats stats;
-            bool useQSearch = true;
-            //Move move = findBestMove(board, depth, timeManager, stats, useQSearch);
-            Move move = findBestMoveNew(board, depth, timeManager, stats);
+            Searcher searcher(board);
+            searcher.tm = timeManager;
+            std::memcpy(searcher.gameHistory, gameHistory, gameHistoryLen * sizeof(Key));
+            searcher.gameHistoryLen = gameHistoryLen;
+            Move move = searcher.findBestMove(depth);
             countMove++;
             auto searchEnd = std::chrono::steady_clock::now();
             long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(searchEnd - searchStart).count();
@@ -306,12 +309,12 @@ void runGame(int initialDepth, bool playSound) {
             SearchResult results;
             results.countMove = countMove;
             results.bestMove = move;
-            results.score = stats.score;
-            results.depth = stats.depth;
+            results.score = searcher.stats.score;
+            results.depth = searcher.stats.depth;
             results.ms = ms;
-            results.stats = stats;
+            results.stats = searcher.stats;
 
-            lastScore = stats.score;
+            lastScore = searcher.stats.score;
             sendResults(results);
 
         }

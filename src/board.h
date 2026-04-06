@@ -5,11 +5,29 @@
 
 #include "constants.h"
 
-namespace zobrist {
+namespace zobrist { // move zobrist to a particular file
     void updateKeyPiece(Key& key, int piece, int square);
     void updateKeySide(Key& key);
     void updateKeyCastle(Key& key, int castle);
     void updateKeyEp(Key& key, int square);
+};
+
+struct StateInfo {
+    int fromSquare;
+    int toSquare;
+
+    int capturedPiece;
+    int movedPiece;
+
+    int promoPiece;
+
+    uint8_t castlingRights;
+
+    int epSquare;
+    int type;
+    int capturedSquare;
+
+    Key key;
 };
 
 struct Board {
@@ -23,6 +41,9 @@ struct Board {
 
     // for example if you want the SQUARE_NB occupied by the white knights you 
     // can do byTypeBB[KNIGHT] & byColorBB[WHITE]
+
+    StateInfo states[256];
+    int ply = 0;
 
     Color   side           = WHITE;
     uint8_t castlingRights = WHITE_OO | WHITE_OOO | BLACK_OO | BLACK_OOO;

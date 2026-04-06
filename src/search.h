@@ -15,9 +15,6 @@
  * - better handling of this gameHistory
  */
 
-extern Key gameHistory[1024];
-extern int gameHistoryLen;
-
 /**
  * nodes = positions evaluated in main search (depth > 0)
  * qnodes = positions evaluated in qsearch (depth <= 0)
@@ -33,33 +30,30 @@ struct SearchStats {
     bool      stopped  = false;
 };
 
-Move findBestMove(
-    Board& board, 
-    int depth, 
-    TimeManager& timeManager, 
-    SearchStats& stats, 
-    bool useQSearch
-);
+struct Searcher {
 
-int negamax(
-    Board& board, 
-    StateInfo* states, 
-    int depth, 
-    int alpha, 
-    int beta, 
-    int ply, 
-    TimeManager& timeManager, 
-    SearchStats& stats,
-    bool useQSearch,
-    bool nullMove = false
-);
+    // Data members
+    Board board;
+    TimeManager tm;
+    SearchStats stats;
 
-int quiescenceSearch(
-    Board& board, 
-    StateInfo* state, 
-    int alpha, 
-    int beta, 
-    int ply, 
-    TimeManager& timeManager, 
-    SearchStats& stats
-);
+    bool useQSearch = true;
+
+    // Game history for repetition detection
+    Key gameHistory[1024] = {};
+    int gameHistoryLen    = 0;
+
+    // Searcher tables
+    int killers[2][256];
+    
+
+    // method
+
+    Searcher(Board board) : board(board) {}
+
+    Move findBestMove(int maxDepth);
+    void iterativeDeepening(int maxDepth);
+
+    int search(int depth, int alpha, int beta, bool nullMove = false);
+    int qSearch(int alpha, int beta, int ply);
+};

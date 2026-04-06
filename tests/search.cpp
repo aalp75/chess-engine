@@ -17,8 +17,6 @@
 #include "../src/timeManager.h"
 #include "../src/transpositionTable.h"
 #include "../src/utils.h"
-#include "../src/searchNew.h"
-
 
 bool testAccuracy(std::vector<std::string> fens, int maxDepth, bool verbose) {
 
@@ -37,12 +35,13 @@ bool testAccuracy(std::vector<std::string> fens, int maxDepth, bool verbose) {
             Move bestMoveExpected = findBestMoveMinimax(board, depth, statsExpected);
             int bestScoreExpected = statsExpected.score;
 
-            SearchStats stats;
             TimeManager timeManager;
             timeManager.init(1'000'000, 0); // no time limit
 
-            Move bestMove = findBestMove(board, depth, timeManager, stats, false);
-            int bestScore = stats.score;
+            Searcher searcher(board);
+            searcher.tm = timeManager;
+            Move bestMove = searcher.findBestMove(depth);
+            int bestScore = searcher.stats.score;
 
             if (verbose) {
                 std::cout << "Best move : " << bestMove << " (Expected: " << bestMoveExpected << ")" << std::endl;
@@ -61,12 +60,13 @@ bool testAccuracy(std::vector<std::string> fens, int maxDepth, bool verbose) {
 }
 
 SearchStats testSpeed(Board& board, int depth, bool verbose) {
-    SearchStats stats;
     TimeManager timeManager;
     timeManager.init(1'000'000, 0); // no time limit
     clearTT();
-    findBestMoveNew(board, depth, timeManager, stats);
-    return stats;
+    Searcher searcher(board);
+    searcher.tm = timeManager;
+    searcher.findBestMove(depth);
+    return searcher.stats;
 }
 
 std::vector<std::string> readFens() {
@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
     //testAccuracy(fens, maxDepth, false);
 
     auto start = std::chrono::high_resolution_clock::now();
-    int depth = 25;
+    int depth = 10;
     int cnt = 0;
     long long totalNNodes = 0;
     long long totalQNodes = 0;

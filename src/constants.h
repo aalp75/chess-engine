@@ -13,6 +13,8 @@ constexpr int SQUARE_NB = 64;
 constexpr int RANK_NB = 8;
 constexpr int FILE_NB = 8;
 
+constexpr int MAX_PLY = 256;
+
 enum Color { 
     WHITE, BLACK,
     COLOR_NB = 2

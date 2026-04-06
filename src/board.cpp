@@ -26,6 +26,7 @@ Board::Board(const std::string& fen) : Board() {
 }
 
 void Board::clear() {
+    ply = 0;
     for (int i = 0; i < SQUARE_NB; i++) {
         squares[i] = NO_PIECE;
     }

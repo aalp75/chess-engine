@@ -6,29 +6,11 @@
 #include "constants.h"
 #include "moveList.h"
 
-struct StateInfo {
-    int fromSquare;
-    int toSquare;
+void doMove(Board& board, Move move);
+void undoMove(Board& board);
 
-    int capturedPiece;
-    int movedPiece;
-
-    int promoPiece;
-
-    uint8_t castlingRights;
-
-    int epSquare;
-    int type;
-    int capturedSquare;
-
-    Key key;
-};
-
-void doMove(Board& board, Move move, StateInfo* states, int ply);
-void undoMove(Board& board, StateInfo* states, int ply);
-
-void doNullMove(Board& board, StateInfo* states, int ply);
-void undoNullMove(Board& board, StateInfo* states, int ply);
+void doNullMove(Board& board);
+void undoNullMove(Board& board);
 
 MoveList generateMoves(const Board& board);
 MoveList generateTacticalMoves(const Board& board);

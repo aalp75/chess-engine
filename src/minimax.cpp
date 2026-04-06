@@ -8,7 +8,6 @@
 
 Move findBestMoveMinimax(Board& board, int depth, SearchStats& stats) {
 
-    StateInfo states[256];
     Move bestMove = 0;
 
     int bestScore = -INF;
@@ -18,10 +17,10 @@ Move findBestMoveMinimax(Board& board, int depth, SearchStats& stats) {
 
     for (int i = 0; i < moves.count; i++) {
         Move move = moves.moves[i];
-        doMove(board, move, states, ply);
+        doMove(board, move);
 
         if (!board.isInCheck(board.side ^ 1)) {
-            int score = minimax(board, states, depth - 1, ply + 1, 1);
+            int score = minimax(board, depth - 1, 1);
 
             if (score > bestScore) {
                 bestScore = score;
@@ -29,7 +28,7 @@ Move findBestMoveMinimax(Board& board, int depth, SearchStats& stats) {
             }
         }
 
-        undoMove(board, states, ply);
+        undoMove(board);
     }
 
     stats.score = bestScore;
@@ -41,7 +40,7 @@ Move findBestMoveMinimax(Board& board, int depth, SearchStats& stats) {
  * Player 0 tries to maximise his score while player 1 tries to minimise it
  */
 
-int minimax(Board& board, StateInfo* states, int depth, int ply, int player) {
+int minimax(Board& board, int depth, int player) {
     if (depth == 0) {
         int eval = eval::evaluate(board);
         return (player == 0) ? eval : -eval;
@@ -55,17 +54,17 @@ int minimax(Board& board, StateInfo* states, int depth, int ply, int player) {
 
     for (int i = 0; i < moves.count; i++) {
         Move move = moves.moves[i];
-        doMove(board, move, states, ply);
+        doMove(board, move);
         if (!board.isInCheck(board.side ^ 1)) {
             legal++;
-            int score = minimax(board, states, depth - 1, ply + 1, player ^ 1);
+            int score = minimax(board, depth - 1, player ^ 1);
             bestScore = (player == 0) ? std::max(bestScore, score) : std::min(bestScore, score);
         }
-        undoMove(board, states, ply);
+        undoMove(board);
     }
 
     if (legal == 0) {
-        if (board.isInCheck(board.side)) return (player == 0) ? -(MATE_SCORE - ply) : (MATE_SCORE - ply);
+        if (board.isInCheck(board.side)) return (player == 0) ? -(MATE_SCORE - board.ply) : (MATE_SCORE - board.ply);
         return 0; // stalemate
     }
     return bestScore;

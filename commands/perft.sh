@@ -10,6 +10,7 @@ g++ -std=c++23 -O3 -march=alderlake -mtune=alderlake -flto \
     "$ROOT/src/magic.cpp" \
     "$ROOT/src/utils.cpp" \
     "$ROOT/src/zobrist.cpp" \
+    "$ROOT/src/evaluate.cpp" \
     -I "$ROOT/src" \
     -o "$ROOT/tests/perft_test"
 
