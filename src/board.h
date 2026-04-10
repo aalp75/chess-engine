@@ -65,6 +65,9 @@ struct Board {
     bool isSquareAttacked(int square, int color) const;
     bool isInCheck(int color) const;
 
+    PieceType lvaAttacker(int square, int side, Bitboard& occ) const;
+    int see(Move move) const; // static exchange evaluation
+
     Key hash() const; // Zobrist hash
     
     inline Color getSide() const {

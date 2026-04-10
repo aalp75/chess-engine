@@ -1,11 +1,13 @@
 #include "board.h"
 
+#include <algorithm>
 #include <cctype>
 #include <iostream>
 #include <sstream>
 
 #include "evaluate.h"
 #include "magic.h"
+#include "moves.h"
 #include "utils.h"
 #include "zobrist.h"
 
@@ -232,4 +234,85 @@ Key Board::hash() const {
     }
 
     return key;
+}
+
+// move the array to a better place
+constexpr int SEE_VALUES[7] = { 0, 100, 300, 300, 500, 900, 20000 };
+
+PieceType Board::lvaAttacker(int square, int side, Bitboard& occ) const {
+
+    Bitboard pawns = magic::getPawnAttacks(square, side ^ 1) & byTypeBB[PAWN] & byColorBB[side] & occ;
+    if (pawns) { 
+        occ &= ~(pawns & -pawns); 
+        return PAWN;
+    }
+
+    Bitboard knights = magic::getKnightAttacks(square) & byTypeBB[KNIGHT] & byColorBB[side] & occ;
+    if (knights) { 
+        occ &= ~(knights & -knights); 
+        return KNIGHT;
+    }
+
+    Bitboard diagAtk     = magic::getBishopAttacks(square, occ);
+    Bitboard straightAtk = magic::getRookAttacks(square, occ);
+
+    Bitboard bishops = diagAtk & byTypeBB[BISHOP] & byColorBB[side] & occ;
+    if (bishops) { 
+        occ &= ~(bishops & -bishops); 
+        return BISHOP; 
+    }
+
+    Bitboard rooks = straightAtk & byTypeBB[ROOK] & byColorBB[side] & occ;
+    if (rooks) { 
+        occ &= ~(rooks & -rooks);
+        return ROOK; 
+    }
+
+    Bitboard queens = (diagAtk | straightAtk) & byTypeBB[QUEEN] & byColorBB[side] & occ;
+    if (queens) { 
+        occ &= ~(queens & -queens); 
+        return QUEEN;
+    }
+
+    Bitboard king = magic::getKingAttacks(square) & byTypeBB[KING] & byColorBB[side] & occ;
+    if (king) {
+        occ &= ~(king & -king); 
+        return KING; 
+    }
+
+    return NO_PIECE_TYPE;
+}
+
+int Board::see(Move move) const {
+    int toSquare = moveTo(move);
+    int type = moveType(move);
+
+    int victimType = (type == EN_PASSANT) ? PAWN : (squares[toSquare] & 7);
+    if (victimType == NO_PIECE_TYPE) return 0;
+
+    int gain[32];
+    int d = 0;
+    gain[0] = SEE_VALUES[victimType];
+
+    Bitboard occupied = (byColorBB[WHITE] | byColorBB[BLACK]) & ~(1ULL << moveFrom(move));
+    if (type == EN_PASSANT) {
+        int capSquare = (side == WHITE) ? toSquare - 8 : toSquare + 8;
+        occupied &= ~(1ULL << capSquare);
+    }
+
+    int attackerType = squares[moveFrom(move)] & 7;
+    int s            = side ^ 1;
+
+    while (true) {
+        d++;
+        gain[d]      = SEE_VALUES[attackerType] - gain[d - 1];
+        attackerType = lvaAttacker(toSquare, s, occupied);
+        if (attackerType == NO_PIECE_TYPE) break;
+        s ^= 1;
+    }
+
+    while (--d > 0)
+        gain[d - 1] = std::max(-gain[d], gain[d - 1]);
+
+    return gain[0];
 }

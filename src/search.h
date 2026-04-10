@@ -1,24 +1,14 @@
 #pragma once
 
-#include<vector>
+#include <vector>
+#include <cstring>
+#include <cmath>
+#include <algorithm>
 
 #include "board.h"
 #include "moves.h"
 #include "timeManager.h"
-
-/**
- * TODO:
- * - clean the code
- * - rename the function with shorter name
- * - less arguments in the function
- * - add more comments to readibility
- * - better handling of this gameHistory
- */
-
-/**
- * nodes = positions evaluated in main search (depth > 0)
- * qnodes = positions evaluated in qsearch (depth <= 0)
- */
+#include "constants.h"
 
 struct SearchStats {
     int       score    = 0;
@@ -33,7 +23,7 @@ struct SearchStats {
 struct Searcher {
 
     // Data members
-    Board board;
+    Board       board;
     TimeManager tm;
     SearchStats stats;
 
@@ -43,17 +33,38 @@ struct Searcher {
     Key gameHistory[1024] = {};
     int gameHistoryLen    = 0;
 
-    // Searcher tables
-    int killers[2][256];
-    
+    // search tables
+    int killers[2][256]; 
+    int history[2][64][64]; 
+    int captureHistory[7][64][7];
+    int countermove[2][64][64];
+    int evalStack[256];
+    int LMR_TABLE[64][64];
 
-    // method
+    Searcher(Board b) : board(b) {
+        std::memset(killers,        0, sizeof(killers));
+        std::memset(history,        0, sizeof(history));
+        std::memset(captureHistory, 0, sizeof(captureHistory));
+        std::memset(countermove,    0, sizeof(countermove));
 
-    Searcher(Board board) : board(board) {}
+        std::fill(evalStack, evalStack + 256, -INF);
+        
+        for (int d = 1; d < 64; d++)
+            for (int m = 1; m < 64; m++)
+                LMR_TABLE[d][m] = std::max(0, (int)(0.75 + std::log(d) * std::log(m) / 2.25));
+    }
 
     Move findBestMove(int maxDepth);
     void iterativeDeepening(int maxDepth);
 
-    int search(int depth, int alpha, int beta, bool nullMove = false);
-    int qSearch(int alpha, int beta, int ply);
+    int search(int depth, int alpha, int beta,
+               bool isPV       = false,
+               bool nullMove   = false,
+               Move excludedMove = 0,
+               Move prevMove   = 0);
+
+    int qSearch(int alpha, int beta, int ply, int qDepth = 0);
+
+    void updateHistory(int side, int from, int to, int bonus);
+    void updateCaptureHistory(int attacker, int to, int victim, int bonus);
 };

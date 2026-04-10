@@ -39,6 +39,7 @@ bool testAccuracy(std::vector<std::string> fens, int maxDepth, bool verbose) {
             timeManager.init(1'000'000, 0); // no time limit
 
             Searcher searcher(board);
+            searcher.useQSearch = false;
             searcher.tm = timeManager;
             Move bestMove = searcher.findBestMove(depth);
             int bestScore = searcher.stats.score;
@@ -51,7 +52,7 @@ bool testAccuracy(std::vector<std::string> fens, int maxDepth, bool verbose) {
             int res = (bestScore == bestScoreExpected);
             passed += res;
             failed += (1 - res);
-        }
+    }
     }
 
     std::cout << "\n" << passed << " passed, " << failed << " failed\n";
@@ -123,11 +124,11 @@ int main(int argc, char* argv[]) {
 
     Board board;
 
-    //int maxDepth = 2;
-    //testAccuracy(fens, maxDepth, false);
+    int maxDepth = 3;
+    testAccuracy(fens, maxDepth, false);
 
     auto start = std::chrono::high_resolution_clock::now();
-    int depth = 10;
+    int depth = 25;
     int cnt = 0;
     long long totalNNodes = 0;
     long long totalQNodes = 0;
@@ -150,8 +151,8 @@ int main(int argc, char* argv[]) {
     std::cout << "Results: " << std::endl;
     std::cout << " - Depth: " << depth << " / " << seldepth << std::endl;
     std::cout << " - Speed: " << elapsed.count() << " seconds" << std::endl;
-    std::cout << " - Nodes: " << formatNumber(totalNNodes) << " seconds" << std::endl;
-    std::cout << " - Qnodes: " << formatNumber(totalQNodes) << " seconds" << std::endl;
+    std::cout << " - Nodes: " << formatNumber(totalNNodes) << std::endl;
+    std::cout << " - Qnodes: " << formatNumber(totalQNodes) << std::endl;
 
     long long nps = (totalNNodes + totalQNodes) / elapsed.count();
 

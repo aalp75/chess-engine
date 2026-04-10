@@ -18,9 +18,9 @@ bool probeTT(Key key, int depth, int ply, int alpha, int beta, int& score) {
     if (entry.key != key || entry.depth < depth) return false;
 
     score = entry.score;
-    // if a mate is found adjust by the number of plies from the root
-    if (score == MATE_SCORE) score -= ply;
-    if (score == -MATE_SCORE) score += ply;
+    // convert from node-relative (stored) to root-relative (returned)
+    if (score >  MATE_BOUND) score -= ply;
+    if (score < -MATE_BOUND) score += ply;
 
     if (entry.flag == TT_EXACT) return true;
     if (entry.flag == TT_UPPER_BOUND && score <= alpha) return true;
@@ -29,13 +29,13 @@ bool probeTT(Key key, int depth, int ply, int alpha, int beta, int& score) {
     return false;
 }
 
-void storeTT(Key key, int depth, int score, TTFlag flag, Move bestMove) {
+void storeTT(Key key, int depth, int ply, int score, TTFlag flag, Move bestMove) {
     TTEntry& entry = tt[key & (TT_SIZE - 1)];
 
     if (entry.key != key || depth >= entry.depth) {
-        // always store a checkmate as MATE_SCORE
-        if (score >  MATE_BOUND) score = MATE_SCORE;
-        if (score < -MATE_BOUND) score = -MATE_SCORE;
+        // convert from root-relative to node-relative so mate distance is preserved
+        if (score >  MATE_BOUND) score += ply;
+        if (score < -MATE_BOUND) score -= ply;
 
         entry.key      = key;
         entry.depth    = depth;

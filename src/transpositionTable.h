@@ -24,4 +24,21 @@ extern TTEntry tt[TT_SIZE];
 
 void clearTT();
 bool probeTT(Key key, int depth, int ply, int alpha, int beta, int& score);
-void storeTT(Key key, int depth, int score, TTFlag flag, Move bestMove);
+void storeTT(Key key, int depth, int ply, int score, TTFlag flag, Move bestMove);
+
+inline Move getTTMove(Key key) {
+    TTEntry& e = tt[key & (TT_SIZE - 1)];
+    return (e.key == key) ? e.bestMove : 0;
+}
+inline int getTTScore(Key key) {
+    TTEntry& e = tt[key & (TT_SIZE - 1)];
+    return (e.key == key) ? e.score : -INF;
+}
+inline TTFlag getTTFlag(Key key) {
+    TTEntry& e = tt[key & (TT_SIZE - 1)];
+    return (e.key == key) ? e.flag : TT_UPPER_BOUND;
+}
+inline int getTTDepth(Key key) {
+    TTEntry& e = tt[key & (TT_SIZE - 1)];
+    return (e.key == key) ? e.depth : -1;
+}
