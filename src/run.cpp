@@ -5,6 +5,6 @@
 
 int main() {
     int maxDepth = 50;
-    bool playSound = true;
+    bool playSound = false;
     run(maxDepth, playSound);
 }

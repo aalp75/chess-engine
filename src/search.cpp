@@ -208,6 +208,7 @@ int Searcher::search(int depth, int alpha, int beta,
     }
 
     // Null move pruning
+    // move hasNonPawnMaterial to be a board method
     bool hasNonPawnMaterial = (board.byTypeBB[KNIGHT] | board.byTypeBB[BISHOP] |
                                 board.byTypeBB[ROOK]   | board.byTypeBB[QUEEN])
                                & board.byColorBB[board.side];
@@ -252,7 +253,7 @@ int Searcher::search(int depth, int alpha, int beta,
 
     Move quietsTried[64];
     Move capturesTried[64];
-    int quietsCount   = 0; 
+    int quietsCount   = 0;
     int capturesCount = 0;
 
     for (int i = 0; i < moves.count; i++) {
@@ -276,8 +277,8 @@ int Searcher::search(int depth, int alpha, int beta,
             && legalmoves >= LMP_COUNT[improving][depth]) continue;
 
         // Futility pruning
-        /*if (canFutility && isQuiet && legalmoves > 0
-            && eval + FUTILITY_MARGIN[depth] <= alpha) continue;*/
+        if (canFutility && isQuiet && legalmoves > 0
+            && eval + FUTILITY_MARGIN[depth] <= alpha) continue;
 
         // History pruning
         if (!isPV && !inCheck && depth <= 3 && isQuiet && legalmoves > 0
@@ -312,7 +313,6 @@ int Searcher::search(int depth, int alpha, int beta,
                 int reduction = LMR_TABLE[std::min(depth, 63)][std::min(legalmoves, 63)];
                 if (!isPV)      reduction++;
                 if (!improving) reduction++;
-                if (inCheck)    reduction--;
                 reduction -= history[board.side][from][to] / 4096;
                 reduction  = std::clamp(reduction, 0, newDepth - 1);
 
